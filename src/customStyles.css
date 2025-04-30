@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.stroke-dashed {
+    stroke-dasharray: 20,10; 
+  }
+
+.stroke-dashed-animated {
+  stroke-dasharray: 100;
+  animation: dash 5s linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
+
+.bounce {
+  animation: bounce 1s ease;
+  animation-iteration-count: 1
+
+}
+
+@keyframes bounce {
+  10% { transform:translateY(0%); }
+  20% { transform:translateY(-1%); }
+  30% { transform:translateY(0%); }
+  100% { transform:translateY(0); }
+}

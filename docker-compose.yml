@@ -1,0 +1,9 @@
+services:
+  web:
+    container_name: "industry-microgrid-demonstrator"
+    image: registry-gitlab.offis.de/official/fbe-p_graeper-kooperation/microgrid-demonstrator:latest
+    build:
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"

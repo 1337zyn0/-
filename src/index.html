@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+  <title>Industrie-Microgrid-Demonstrator</title>
+  <meta charset='utf-8'>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="HandheldFriendly" content="true" />
+
+  <!-- tailwind css framework -->
+  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
+
+  <!-- custom css dependant from tailwin  -->
+  <!-- <link rel="stylesheet" href="customStyles.css"> -->
+  <link rel="stylesheet" href="./output.css">
+
+  <!-- 
+      dirty import
+    -->
+  <script src="./node_modules/d3/dist/d3.js"></script>
+
+  <!-- 
+      OpenSoundControl is a data transport specification (an encoding) for realtime message communication among applications and hardware.
+      It is used in the TUIO library.
+    -->
+  <script src="./libs/osc-browser.js"></script>
+
+  <!-- deactivating rightclick on demonstrator, which could be accidently executed by user fingers -->
+  <script>
+    document.addEventListener('contextmenu', event => {
+      event.preventDefault();
+    });
+  </script>
+
+  <script type="module">
+    // internal classes
+    import { CsvReader, JsonReader, toMultilineText } from "./js/helper.js"
+    import { ScenarioState, ScenarioSimulator } from "./js/ScenarioSimulator.js"
+    import { Heatpump, PVSystem, Crane, OfficeBuilding, Battery, TrafoClassic, TrafoD3, Wallbox } from "./js/EnergyDevices.js"
+    import { TuioListener } from "./js/TuioListener.js"
+    import { NodeManager } from "./js/NodeManager.js"
+    import { NodeType } from "./js/NodeType.js"
+    import { Clock, MagnifyingGlass, Forecasts, EnergyManagementSystem } from "./js/NodeLogic.js"
+    import { DevArea, SideBarSmall, Time, InfoBox, TileIconTextGroup } from "./js/GuiElement.js"
+
+    // external
+    import { Tuio11Client } from "./libs/tuio11/Tuio11Client.js";
+    import { Tuio11Listener } from "./libs/tuio11/Tuio11Listener.js";
+    import { WebsocketTuioReceiver } from "./libs/common/WebsocketTuioReceiver.js";
+    import { Tuio11Object } from "./libs/tuio11/Tuio11Object.js";
+    // import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; // D3js Framwork
+    // import * as d3 from ("d3");
+
+
+    var tuioClient
+    const tuioListener = new TuioListener(onTuioUpdate)
+    var scenario = new ScenarioSimulator()
+    const nodeManager = new NodeManager()
+
+    const config = {
+      energy_device_power: [],
+      nodes: [],
+      websocket_url_tuio_api_box: "",
+    }
+
+    globalThis.config = config
+
+    // Functions
+    function initiateApplicationStart() {
+      let jsonConfig = new JsonReader("./data/configuration.json")
+      jsonConfig.readFile(applyConfig);
+    }
+
+    function applyConfig(receivedDict) {
+      // Apply external config to local data
+      Object.entries(receivedDict).map(([key, value]) => {
+        config[key] = value
+      })
+
+      start()
+    }
+
+    function start() {
+      const deviceCsv = new CsvReader(config.energy_device_power_csv)
+      deviceCsv.loadCsvFile(parseFile);
+
+      tuioClient = new Tuio11Client(new WebsocketTuioReceiver(config['websocket_url_tuio_api_box']))
+      tuioClient.addTuioListener(tuioListener)
+      tuioClient.connect()
+
+      scenario.scenarioSteps = config.scenario.steps
+      scenario.step = config.scenario.start_with_step
+      scenario.co2emissionGramPerKwh = config.scenario.co2emission_gram_per_kwh
+
+      sidebar.draw()
+      time.draw(function () {
+        updateDiagram()
+      })
+
+      updateDiagram()
+    }
+
+    let hallo = null
+    function onTuioUpdate() {
+
+      nodeManager.getNodes().map((node) => {
+        // update scenario devices
+        if (node.isActive && node.logic.isTypeOf(NodeType.energyDevice)) {
+          scenario.addEnergyDevice(node.id, node.logic)
+
+        } else if (!node.isActive && node.logic.isTypeOf(NodeType.energyDevice)) {
+          scenario.removeEnergyDevice(node.id)
+        }
+
+        // update node with latest tuioObject
+        if (node.tuioObject) {
+          node.x = node.tuioObject.xPos * width
+          node.y = node.tuioObject.yPos * height
+          node.angle = Math.round((360 / (2 * Math.PI) * node.tuioObject.angle) * 100) / 100
+
+          delete (node.tuioObject)
+        }
+
+        // update clock
+        if (node.logic.isTypeOf(NodeType.clock) && node.isActive) {
+          scenario.step = node.logic.degreeToStep(node.angle, 4)
+        }
+      })
+
+      updateDiagram()
+    }
+
+    function splitFile(result) {
+      const [keys, ...rest] = result
+        .trim()
+        .split("\r\n")
+        .map((item) => item.split(";"));
+
+      return [keys, ...rest]
+    }
+
+    function extractFileData(keys, rest) {
+      let deviceData = {}
+      keys.forEach((key, index) => {
+        deviceData[key] = rest.map((item) => {
+          return parseFloat(item.at(index).replace(',', '.'))
+        })
+      })
+
+      return deviceData
+    }
+
+    function parseFile(file) {
+      const [keys, ...rest] = splitFile(file)
+      config.energy_device_power = extractFileData(keys, rest)
+
+      config.nodes.map((node) => {
+        node.isActive = false
+        node.logic = selectEnergyDevice(node.id)
+        nodeManager.addNode(node)
+      })
+
+      nodeManager.getNodes().map((node) => {
+        tuioListener.connectTangibleToObject(node.tangible_id, node)
+      })
+
+      devArea.draw()
+    }
+
+    function selectEnergyDevice(energyDeviceId) {
+      switch (energyDeviceId) {
+        case 'trafo_classic':
+          return new TrafoClassic();
+
+        case 'trafo_d3':
+          return new TrafoD3();
+
+        case 'heatpump':
+          let hp = new Heatpump()
+          hp.historyInW = config.energy_device_power['hp']
+          return hp;
+
+        case 'crane':
+          let crane = new Crane()
+          crane.historyInW = config.energy_device_power['crane']
+          return crane
+
+        case 'office_building':
+          let office_building = new OfficeBuilding()
+          office_building.historyInW = config.energy_device_power['office_building']
+          return office_building
+
+        case 'pv_system':
+          let pv = new PVSystem()
+          pv.scaleFactor = 200
+          pv.historyInW = config.energy_device_power['pv_system']
+          return pv
+
+        case 'battery':
+          let battery = new Battery()
+          battery.scaleFactor = 1
+          battery.historyInW = config.energy_device_power['battery']
+          return battery
+
+        case 'wallbox':
+          let wallbox = new Wallbox()
+          wallbox.scaleFactor = 5
+          wallbox.historyInW = config.energy_device_power['wallbox']
+          return wallbox
+
+        case 'clock':
+          return new Clock(tuioListener, 12)
+
+        case 'magnifying_glass':
+          return new MagnifyingGlass()
+
+        case 'forecasts':
+          return new Forecasts()
+
+        case 'qems':
+          return new EnergyManagementSystem()
+
+        default:
+          return null;
+      }
+    }
+
+    function dragNodeStarted(event) {
+    }
+
+    function draggedNode(event, d) {
+      d3.select(this)
+        .attr("transform", d => `translate(${event.x}, ${event.y})`)
+    }
+
+    function dragNodeEnded(event, d) {
+      console.log("dragended")
+      tuioListener.updateTuioObject(new Tuio11Object(Date.now(), -1, d.tangible_id, event.x / width, event.y / height, -1, -1, -1, -1, -1, -1))
+    }
+
+    function updateElectricityLines() {
+      let electricityLinks = nodeManager.createElectricityLinks()
+      scenario.setElectricityLinks(electricityLinks)
+
+      d3.selectAll("#electricitylines")
+        .selectAll(".electricityline")
+        .data(electricityLinks)
+        .join(
+          enter => enter
+            .append("line")
+            .classed('electricityline', true)
+            .classed('stroke-dashed-animated', d => nodeManager.isD3ActiveAndEnergyFlowing(d.sourceRef.logic, d.targetRef.logic))
+            // .attr('x1', d => d.sourceRef.x)
+            // .attr('y1', d => d.sourceRef.y)
+            // .attr('x2', d => d.targetRef.x)
+            // .attr('y2', d => d.targetRef.y)
+            .attr('x2', d => nodeManager.determineEnergySource(d).x)
+            .attr('y2', d => nodeManager.determineEnergySource(d).y)
+            .attr('x1', d => nodeManager.determineEnergyTarget(d).x)
+            .attr('y1', d => nodeManager.determineEnergyTarget(d).y),
+
+          update => update
+            // .call(d => { console.log("Updating lines"); console.log(d) })
+            .classed('stroke-dashed-animated animation-reverse', d => nodeManager.isD3ActiveAndEnergyFlowing(d.sourceRef.logic, d.targetRef.logic))
+            .attr('x2', d => nodeManager.determineEnergySource(d).x)
+            .attr('y2', d => nodeManager.determineEnergySource(d).y)
+            .attr('x1', d => nodeManager.determineEnergyTarget(d).x)
+            .attr('y1', d => nodeManager.determineEnergyTarget(d).y),
+
+          exit => exit
+            // .call(d => { console.log("Exiting lines"); console.log(d) })
+            .remove(),
+        )
+
+      d3.selectAll('.electricityline')
+        .classed("stroke-[6px] stroke-gray-800", true)
+    }
+
+    function updateDataLines() {
+      d3.selectAll("#datalines")
+        .selectAll(".dataline")
+        .data(nodeManager.createDataLinks())
+        .join(
+          enter => enter
+            // .call(d => { console.log("Entering lines"); console.log(d) })
+            .append("line")
+            .classed('dataline stroke-[15px] stroke-green-400 drop-shadow-lg stroke-dashed animate-pulse', true)
+            .attr("id", d => d.id)
+            .attr('x1', d => d.sourceRef.x)
+            .attr('y1', d => d.sourceRef.y)
+            .attr('x2', d => d.targetRef.x)
+            .attr('y2', d => d.targetRef.y),
+
+          update => update
+            // .call(d => { console.log("Updating lines"); console.log(d) })
+            .attr('x1', d => d.sourceRef.x)
+            .attr('y1', d => d.sourceRef.y)
+            .attr('x2', d => d.targetRef.x)
+            .attr('y2', d => d.targetRef.y),
+
+          exit => exit
+            // .call(d => { console.log("Exiting lines"); console.log(d) })
+            .remove()
+        )
+    }
+
+    function updateNodes() {
+      d3.select("#nodes")
+        .selectAll(".node")
+        .data(nodeManager.getActiveNodes(), d => d.id)
+        .join(
+          enter => {
+            let page1 = true
+            let labelInhalt
+            let labelName
+            let startX
+            let nodeGroup = enter
+              .append("g")
+              .attr("id", d => d.id)
+              .classed("node", true)
+              .attr("transform", d => `translate(${d.x}, ${d.y})`)
+              .call(d3.drag()
+                .on("start", dragNodeStarted)
+                .on("drag", draggedNode)
+                .on("end", dragNodeEnded))
+
+            // nodeGroup
+            //   .append("title")
+            //     .text(d => d.name) 
+
+            let nodeTypeDependantContent = nodeGroup
+              .select(function (d) {
+                return d.logic.drawCustomElements(this)
+              })
+
+            let nodeCircle = nodeGroup
+              .append("circle")
+              .attr("r", 20)
+              .attr('class', d => `fill-[${d.color}]`)
+              .classed('stroke-2 stroke-black', true)
+
+            let nodeCircleText = nodeGroup
+              .append("text")
+              .attr("dx", -15)
+              .attr("dy", 5)
+              .classed('font-mono fill-black text-xs', true)
+              .text(d => d.short_label)
+
+            let nodeLabel = nodeGroup
+              .append("g")
+              .attr("transform", d => `translate(${-40 - d.name.length * 10}, 130)`)
+              .attr("id", d => d.id)
+              .classed("classic", d => d.logic.isTypeOf(NodeType.energyDevice) || d.logic.isTypeOf(NodeType.io))
+              .classed("ems", d => d.logic.isTypeOf(NodeType.ems))
+              .classed("smart", d => d.logic.isTypeOf(NodeType.smart))
+              .classed("ui", d => d.logic.isTypeOf(NodeType.io))
+              .classed("invisible", d => d.isLabelHidden)
+              .classed("labelGroup", true)
+              .call(d3.drag()
+                .on("start", null)
+                .on("drag", null)
+                .on("end", null))
+
+            let labelRect = nodeLabel
+              .append("rect")
+              .attr('width', 420)
+              .attr('height', 40)
+              .attr("id", d => d.id)
+              .classed("nodeLabel", true)
+              .attr('rx', '3')
+              .call(d3.drag()
+                .on("start", function (event) {
+                  startX = event.x
+                })
+                .on("end", function (event) {
+                  if (startX > event.x) {
+                    labelText
+                      .classed("invisible", true)
+                    labelText2
+                      .classed("invisible", false)
+                    pageCircle
+                      .attr("fill", "#8e968d")
+                    pageCircle2
+                      .attr("fill", "black")
+                  } else if (startX < event.x) {
+                    labelText
+                      .classed("invisible", false)
+                    labelText2
+                      .classed("invisible", true)
+                    pageCircle
+                      .attr("fill", "black")
+                    pageCircle2
+                      .attr("fill", "#8e968d")
+                  }
+                }))
+
+            labelRect.select((d) => {
+              if (d.logic.isTypeOf(NodeType.energyDevice)) {
+                labelRect.classed("energyDevice", true)
+              }
+            })
+
+            let labelText = nodeLabel
+              .append("text")
+              .attr("id", d => d.id)
+              .attr("x", 15)
+              .attr("y", 25)
+              .classed('text-2xl', true)
+              .classed("invisible", false)
+              .text(function (d) {
+                labelName = d.name
+                if (page1) {
+                  labelInhalt = d.name
+                }
+                return labelName
+              })
+              .call(d3.drag()
+                .on("start", function (event) {
+                  startX = event.x
+                })
+                .on("end", function (event) {
+                  if (startX > event.x) {
+                    labelText
+                      .classed("invisible", true)
+                    labelText2
+                      .classed("invisible", false)
+                    pageCircle
+                      .attr("fill", "#8e968d")
+                    pageCircle2
+                      .attr("fill", "black")
+                  } else if (startX < event.x) {
+                    labelText
+                      .classed("invisible", false)
+                    labelText2
+                      .classed("invisible", true)
+                    pageCircle
+                      .attr("fill", "black")
+                    pageCircle2
+                      .attr("fill", "#8e968d")
+                  }
+                }))
+
+            let labelText2 = nodeLabel
+              .append("text")
+              .attr("id", d => d.id)
+              .attr("x", 15)
+              .attr("y", 25)
+              .classed('text-2xl', true)
+              .classed("invisible", true)
+              .classed("text-2xl font-mono fill-white description text-xl font-bold", true)
+              .text(function (d) {
+                labelName = d.name
+                return labelName + " " + "Agent-View"
+              })
+              .call(d3.drag()
+                .on("start", function (event) {
+                  startX = event.x
+                })
+                .on("end", function (event) {
+                  if (startX > event.x) {
+                    labelText
+                      .classed("invisible", true)
+                    labelText2
+                      .classed("invisible", false)
+                    pageCircle
+                      .attr("fill", "#8e968d")
+                    pageCircle2
+                      .attr("fill", "black")
+                      
+                  } else if (startX < event.x) {
+                    labelText
+                      .classed("invisible", false)
+                    labelText2
+                      .classed("invisible", true)
+                    pageCircle
+                      .attr("fill", "black")
+                    pageCircle2
+                      .attr("fill", "#8e968d")
+                  }
+                }))
+
+            let pageCircle = nodeLabel
+              .append("circle")
+              .attr("r", 5)
+              .attr("cx", 200)
+              .attr("cy", function(d){
+                if (!d.logic.isTypeOf(NodeType.trafo)) {
+                  return 280 - 8
+                }else{
+                  return 150 - 8
+                }
+              })
+              .attr("fill", "black")
+
+            let pageCircle2 = nodeLabel
+              .append("circle")
+              .attr("r", 5)
+              .attr("cx", 220)
+              .attr("cy", function (d) {
+                if (!d.logic.isTypeOf(NodeType.trafo)) {
+                  return 280 - 8
+                }else{
+                  return 150 - 8
+                }
+              })
+              .attr("fill", "#8e968d")
+
+            labelRect.select(d => {
+              if (d.logic.isTypeOf(NodeType.smart)) {
+                const co2Label = nodeLabel
+                  .append("g")
+                  .classed("ems-dependant-view invisible", true)
+                  .attr("transform", d => `translate(${labelRect.attr("width") - 95}, 7) scale(1)`)
+
+                co2Label
+                  .append("rect")
+                  .classed("stroke-[1.5px] stroke-green-400", true)
+                  .attr('width', 75)
+                  .attr('height', 25)
+                  .attr('rx', '3')
+
+                co2Label
+                  .append("text")
+                  .classed("fill-green-400 text-base font-semibold font-normal", true)
+                  .text("-CO₂")
+                  .attr("x", 29)
+                  .attr("y", 18)
+
+                co2Label
+                  .append("path")
+                  .attr("transform", d => `translate(2, 0) scale(1)`)
+                  .classed("stroke-green-400 fill-none stroke-[1.5px]", true)
+                  .attr("d", globalThis.config.ui.icons.globe_europe_africa)
+              }
+            })
+
+
+            labelText.select(d => {
+              toMultilineText(labelText, d.description, labelRect.attr("width") * 0.11 - 19, "text-base font-normal", 15)
+            })
+            labelText
+              .insert("tspan", ":first-child")
+              .text(" ")
+              .attr("x", 0)
+              .attr("dy", "0.5em")
+
+            labelText2.select(d => {
+              toMultilineText(labelText2, "Dies ist die AgentenView. Hier werden einige Optimierungsschritte verdeutlicht", labelRect.attr("width") * 0.11 - 19, "fill-white text-3xl text-base font-normal", 15)
+            })
+            labelText2
+              .insert("tspan", ":first-child")
+              .text(" ")
+              .attr("x", 0)
+              .attr("dy", "0.5em")
+
+            nodeLabel.select((d) => {
+              if (d.logic.isTypeOf(NodeType.energyDevice)) {
+                nodeLabel.append((d) => {
+
+                  let tile = new TileIconTextGroup()
+                  tile.width = 150
+                  tile.height = 60
+                  tile.x = labelRect.attr('width') - 160
+                  tile.y = 46
+                  tile.textHead = d.logic.nowInW >= 0 ? "Verbrauch" : "Erzeugung"
+                  tile.textValue = Math.abs(Math.round((d.logic.nowInW / 1000)))
+                  tile.cssValue = "d3-dependant-view"
+                  tile.textUnit = "kW"
+                  tile.iconPath = globalThis.config.ui.icons.bolt
+                  tile.draw()
+                  return tile.element.node()
+                })
+              }
+            })
+
+            enter.selectAll(".tile-text-head")
+              .classed("fill-gray-200 text-base font-normal", true)
+
+            enter.selectAll(".tile-text-value")
+              .classed("fill-white text-2xl font-bold", true)
+
+            enter.selectAll(".tile-text-unit")
+              .classed("fill-white text-2xl font-bold", true)
+
+            let labelHeight = (labelText.selectChildren("tspan").size() * 22) + 22
+            if (labelHeight < 150) {
+              labelHeight = 150
+            }
+
+            labelRect
+              .attr("height", labelHeight)
+
+            let diagram = nodeLabel
+              .append("g")
+              .attr("transform", d => `translate(40, 130)`)
+              .classed("diagram d3-dependant-view", true)
+
+            enter.select((d) => {
+              if (d.logic.isTypeOf(NodeType.energyDevice) && !d.logic.isTypeOf(NodeType.trafo)) {
+                d.logic.drawLoadDiagram(scenario.step, diagram)
+              }
+            })
+
+            return nodeGroup;
+          },
+
+          // apply on given data
+          update => {
+            update
+              .attr("transform", d => `translate(${d.x}, ${d.y})`)
+
+            update.select(".tile-text-value")
+              .text(d => Math.abs(Math.round(d.logic.nowInW / 1000)))
+
+            update.select(".tile-text-head")
+              .text(d => d.logic.nowInW >= 0 ? "Verbrauch" : "Erzeugung")
+
+            update.select(".diagram")
+              .classed("invisible", !nodeManager.isNodeActive('trafo_d3'))
+
+            update.select((d) => {
+              if (d.logic.isTypeOf(NodeType.energyDevice) && !d.logic.isTypeOf(NodeType.trafo)) {
+                d.logic.drawLoadDiagram(scenario.step)
+              }
+            })
+          },
+
+          // apply on deleted data
+          exit => exit
+            .remove()
+        )
+    }
+
+    function updateDiagram() {
+      scenario.calculateScenarioD3()
+      sidebar.update()
+
+      updateDataLines();
+      updateElectricityLines();
+      updateNodes();
+      time.update()
+      updateLabelClasses()
+      updateInfoBoxes()
+    }
+
+    function updateInfoBoxes() {
+      d3.select(tutorialPlaceDevices.element).node()
+        .classed("invisible", scenario.getActiveNodes().length > 0)
+
+      d3.select("#infobox-d3")
+        .classed("invisible", nodeManager.isNodeActive("trafo_d3"))
+
+      d3.select("#infobox-ems")
+        .classed("invisible", (nodeManager.isNodeActive("trafo_d3") && nodeManager.isNodeActive("qems")))
+    }
+
+    function updateLabelClasses() {
+
+      applyDefaultOnClassicAndUi()
+      if (nodeManager.isNodeActive('trafo_d3')) {
+        applyD3Stlye()
+      } else {
+        applyClassicStyle()
+      }
+      applyEmsStyle()
+      applyColorsOnDiagramStrokes()
+      applyD3DependantContent()
+      applyD3AndEmsDependantContent()
+      applyPrognosisDependantContent()
+
+      function applyDefaultOnClassicAndUi() {
+        d3.selectAll(".labelGroup").filter(".classic.ui").selectAll("rect")
+          .classed(globalThis.config.ui.classes.node_label_classic_rect, true)
+      }
+
+      function applyD3Stlye() {
+        d3.selectAll(".labelGroup").filter(".classic").filter(":not(.ui)").selectAll("rect")
+          .classed(globalThis.config.ui.classes.node_label_classic_rect, !nodeManager.isNodeActive('trafo_d3'))
+          .classed(globalThis.config.ui.classes.node_label_d3_rect, nodeManager.isNodeActive('trafo_d3'))
+
+        d3.selectAll(".labelGroup").filter(".classic").filter(":not(.ui)").select("rect")
+          .attr("height", d => {
+            if (!d.logic.isTypeOf(NodeType.trafo)) {
+              return 280
+            }
+
+            return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
+          })
+
+        d3.selectAll(".labelGroup").filter(".classic").select("text")
+          .classed(globalThis.config.ui.classes.node_label_classic_text, false)
+          .classed(globalThis.config.ui.classes.node_label_d3_text, true)
+      }
+
+      function applyClassicStyle() {
+        d3.selectAll(".labelGroup").filter(".classic").selectAll("rect")
+          .classed(globalThis.config.ui.classes.node_label_d3_rect, false)
+          .classed(globalThis.config.ui.classes.node_label_classic_rect, true)
+
+        d3.selectAll(".labelGroup").filter(".classic").select("rect")
+          .attr("height", d => {
+
+            if (!d.logic.isTypeOf(NodeType.trafo)) {
+              return 120
+            }
+
+            return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
+          })
+
+
+        d3.selectAll(".labelGroup").filter(".classic").select("text")
+          .classed(globalThis.config.ui.classes.node_label_d3_text, false)
+          .classed(globalThis.config.ui.classes.node_label_classic_text, true)
+      }
+
+      function applyEmsStyle() {
+        d3.selectAll(".labelGroup").filter(".ems").select("rect")
+          .classed(globalThis.config.ui.classes.node_label_ems_rect, true)
+
+        d3.selectAll(".labelGroup").filter(".ems").select("text")
+          .classed(globalThis.config.ui.classes.node_label_ems_text, true)
+      }
+
+      function applyD3DependantContent() {
+        d3.selectAll(".d3-dependant-view")
+          .classed("invisible", !nodeManager.isNodeActive("trafo_d3"))
+      }
+
+      function applyD3AndEmsDependantContent() {
+        d3.selectAll(".ems-dependant-view")
+          .classed("invisible", !nodeManager.isNodeActive("trafo_d3") || !nodeManager.isNodeActive("qems"))
+      }
+
+      function applyPrognosisDependantContent() {
+        d3.selectAll(".prognosis-dependant-view")
+          .classed("invisible", !nodeManager.isNodeActive("forecasts"))
+      }
+
+      function applyColorsOnDiagramStrokes() {
+        if (nodeManager.isNodeActive('qems')) {
+
+          d3.selectAll(".labelGroup").filter(".smart").select(".diagram").select(".diagram-historical")
+            .classed("stroke-white", false)
+            .classed("stroke-green-400", true)
+
+        } else {
+          d3.selectAll(".labelGroup").filter(".smart").select(".diagram").select(".diagram-historical")
+            .classed("stroke-green-400", false)
+            .classed("stroke-white", true)
+        }
+      }
+    }
+
+
+    // Variables
+
+    // Declare the chart dimensions and margins.
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    // Create the SVG container.
+    const svg = d3.create("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", [0, 0, width, height])
+      .attr('class', 'h-full w-full')
+      .attr('class', 'bg-[url("./images/bg-blue_big.webp")] bg-cover border-solid border-black border-2 border-blue-400')
+
+    const sidebar = new SideBarSmall(svg, scenario)
+    sidebar.x = width
+    sidebar.y = height
+
+    const devArea = new DevArea(svg, nodeManager, tuioListener)
+
+    const tutorialPlaceDevices = new InfoBox("infobox-begin")
+    tutorialPlaceDevices.width = 800
+    tutorialPlaceDevices.height = 200
+    tutorialPlaceDevices.x = width / 2 - tutorialPlaceDevices.width / 2
+    tutorialPlaceDevices.y = height / 2 - tutorialPlaceDevices.height / 2
+    tutorialPlaceDevices.rectCss = "stroke-0 stroke-black fill-[#252e42]/90"
+    tutorialPlaceDevices.textHead = "Willkommen"
+    tutorialPlaceDevices.textHeadCss = "fill-white text-3xl font-bold"
+    tutorialPlaceDevices.textContent = "Bitte platzieren Sie ein Energiegerät auf dem Industrieareal."
+    tutorialPlaceDevices.textContentCss = "fill-white font-normal"
+    tutorialPlaceDevices.draw()
+
+    svg
+      .append(function () { return tutorialPlaceDevices.element.node(); })
+
+    // Add nodes group
+    var nodeNetwork = svg
+      .append("g")
+      .attr("id", "nodeNetwork")
+
+    // Add lines first, in order to have the circles in the top
+    var dataLinks = nodeNetwork
+      .append("g")
+      .attr("id", "datalines")
+
+    var link = nodeNetwork
+      .append("g")
+      .attr("id", "electricitylines")
+
+    // Add circles
+    const node = nodeNetwork
+      .append("g")
+      .attr("id", "nodes")
+
+    const time = new Time(svg, scenario)
+
+    // Script
+    initiateApplicationStart();
+    demonstratorContainer.append(svg.node());
+  </script>
+
+</head>
+
+<body class="touch-none h-14 bg-gradient-to-r from-sky-500 to-[#1182c2] select-none">
+
+  <div id="demonstratorContainer"></div>
+
+</body>
+
+</html>
