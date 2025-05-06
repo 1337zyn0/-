@@ -156,6 +156,7 @@
       config.nodes.map((node) => {
         node.isActive = false
         node.logic = selectEnergyDevice(node.id)
+        node.instanceId = 0
         nodeManager.addNode(node)
       })
 
@@ -234,7 +235,10 @@
 
     function dragNodeEnded(event, d) {
       console.log("dragended")
-      tuioListener.updateTuioObject(new Tuio11Object(Date.now(), -1, d.tangible_id, event.x / width, event.y / height, -1, -1, -1, -1, -1, -1))
+      let tuioObject = new Tuio11Object(Date.now(), -1, d.tangible_id, event.x / width, event.y / height, -1, -1, -1, -1, -1, -1)
+      tuioObject.instanceId = d.instanceId
+      nodeManager.updateNode(d.instanceId, event.x, event.y)
+      tuioListener.updateTuioObject(tuioObject)
     }
 
     function updateElectricityLines() {
@@ -309,6 +313,7 @@
         .data(nodeManager.getActiveNodes(), d => d.id)
         .join(
           enter => {
+            console.log(nodeManager.getActiveNodes())
             let page1 = true
             let labelInhalt
             let labelName
@@ -362,7 +367,7 @@
 
             let labelRect = nodeLabel
               .append("rect")
-              .attr('width', 420)
+              .attr('width', 530)
               .attr('height', 40)
               .attr("id", d => d.id)
               .classed("nodeLabel", true)
@@ -481,7 +486,7 @@
             let pageCircle = nodeLabel
               .append("circle")
               .attr("r", 5)
-              .attr("cx", 200)
+              .attr("cx", 255)
               .attr("cy", function(d){
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
@@ -494,7 +499,7 @@
             let pageCircle2 = nodeLabel
               .append("circle")
               .attr("r", 5)
-              .attr("cx", 220)
+              .attr("cx", 275)
               .attr("cy", function (d) {
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
@@ -503,6 +508,32 @@
                 }
               })
               .attr("fill", "#8e968d")
+
+              let closeWindow = nodeLabel
+              .append("circle")
+              .attr("r", 15)
+              .attr("cx", 513)
+              .attr("cy", 18)
+              .attr("fill", "red")
+              .on("click", function (d) {
+                tuioListener.removeTuioObject(d.srcElement.__data__)
+                nodeManager.removeNode(d.srcElement.__data__)
+                updateDiagram()
+              })
+
+            let closeWindowText = nodeLabel
+              .append("text")
+              .attr("x", 506)
+              .attr("y", 25)
+              .classed("invisible", false)
+              .attr("fill", "white")
+              .attr("font-size", "23px")
+              .text("X")
+              .on("click", function (d) {
+                tuioListener.removeTuioObject(d.srcElement.__data__)
+                nodeManager.removeNode(d.srcElement.__data__)
+                updateDiagram()
+              })
 
             labelRect.select(d => {
               if (d.logic.isTypeOf(NodeType.smart)) {

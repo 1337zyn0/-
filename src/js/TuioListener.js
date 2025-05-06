@@ -1,4 +1,5 @@
-import {Tuio11Listener} from "../libs/tuio11/Tuio11Listener.js";
+import { Tuio11Listener } from "../libs/tuio11/Tuio11Listener.js";
+import { Node } from './Nodes.js'
 
 /**
  * @class
@@ -10,6 +11,8 @@ export class TuioListener extends Tuio11Listener {
         this._isDebugOn = true;
         this._tuioEntityMap = new Map();
         this._callback_on_update = defaultCb;
+        this._existingObjects = new Map();
+        this._nodeToTuioObjectMap = new Map();
     }
 
     /**
@@ -18,7 +21,7 @@ export class TuioListener extends Tuio11Listener {
      * @returns 
      */
     #debug(string) {
-        if(!this._isDebugOn) return false
+        if (!this._isDebugOn) return false
         console.log(`| ${this.constructor.name} | ${string}`)
     }
 
@@ -28,7 +31,7 @@ export class TuioListener extends Tuio11Listener {
      * @param {object} object 
      */
     connectTangibleToObject(tangibleId, object) {
-        if(this._tuioEntityMap.has(tangibleId)) {
+        if (this._tuioEntityMap.has(tangibleId)) {
             this.#debug(`⚠ Attention | Tangible ${tangibleId} is already connected.`)
         }
         this._tuioEntityMap.set(tangibleId, object)
@@ -53,22 +56,51 @@ export class TuioListener extends Tuio11Listener {
     }
 
     /**
+     * Get the object connected to the passed instance ID
+     * @param {number} instanceId 
+     * @returns object
+     */
+    getObjectByInstanceId(instanceId) {
+        return this._existingObjects.get(instanceId)
+    }
+
+    /**
      * Executed on adding Tangibles
      * @param tuioObject 
      */
-    addTuioObject(tuioObject){
+    addTuioObject(tuioObject) {
+        let objectNumber = 0
         this.#debug(`TuioObject added (ID: ${tuioObject.symbolId}) at position (x: ${tuioObject.xPos}, y: ${tuioObject.yPos})`)
 
-        if(!this._tuioEntityMap.has(tuioObject.symbolId)) {
+        if (!this._tuioEntityMap.has(tuioObject.symbolId)) {
             this.#debug(`Tangible ID ${tuioObject.symbolId} has not been connected to an object.`)
             return false
         }
-
-        let node = this.getObjectByTangibleId(tuioObject.symbolId)
+        //counts how many objects are already existing with the same tangible ID
+        if (Array.from(this._existingObjects.values()).some(object => object.tangible_id === tuioObject.symbolId)) {
+            this._existingObjects.forEach((value, key) => {
+                if (value.tangible_id === tuioObject.symbolId) {
+                    if (objectNumber < 80)
+                        objectNumber++
+                } else {
+                    return
+                }
+            })
+        }
+        //creates a new node depending on if the object already exists or not
+        let node
+        if (!Array.from(this._existingObjects.values()).some(node => node.tangible_id === tuioObject.symbolId)) {
+            node = this.getObjectByTangibleId(tuioObject.symbolId)
+        } else {
+            let helpNode = this.getObjectByTangibleId(tuioObject.symbolId)
+            node = Object.create(Object.getPrototypeOf(helpNode))
+            Object.assign(node, helpNode)
+        }
+        tuioObject.instanceId = node.instanceId
         node.isActive = true
         node.tuioObject = tuioObject
-        // console.log(node)
-
+        node.instanceId = parseInt(tuioObject.symbolId.toString() + objectNumber.toString())
+        this._existingObjects.set(parseInt(tuioObject.symbolId.toString() + objectNumber.toString()), node)
         this._callback_on_update()
     }
 
@@ -76,10 +108,11 @@ export class TuioListener extends Tuio11Listener {
      * Executed on moving Tangibles
      * @param tuioObject 
      */
-    updateTuioObject(tuioObject){
+    updateTuioObject(tuioObject) {
         // this.#debug(`TuioObject update (ID: ${tuioObject.symbolId}) at position (x: ${tuioObject.xPos}, y: ${tuioObject.yPos})`)
 
-        let node = this.getObjectByTangibleId(tuioObject.symbolId)
+        //let node = this.getObjectByTangibleId(tuioObject.symbolId)
+        let node = this.getObjectByInstanceId(tuioObject.instanceId)
         node.isActive = true
         node.tuioObject = tuioObject
 
@@ -91,14 +124,15 @@ export class TuioListener extends Tuio11Listener {
      * @param tuioObject 
      * @returns 
      */
-    removeTuioObject(tuioObject){
+    removeTuioObject(tuioObject) {
         this.#debug(`TuioObject removed (ID: ${tuioObject.symbolId}) at position (x: ${tuioObject.xPos}, y: ${tuioObject.yPos})`)
-        if(!this._tuioEntityMap.has(tuioObject.symbolId)) {
+        /* if (!this._tuioEntityMap.has(tuioObject.symbolId)) {
             this.#debug(`Tangible ID ${tuioObject.symbolId} has not been connected to an object.`)
             return false
+        } */
+        if (this._existingObjects.get(tuioObject.instanceId)) {
+            this._existingObjects.delete(tuioObject.instanceId)
         }
-        this._tuioEntityMap.get(tuioObject.symbolId).isActive = false
-
         this._callback_on_update()
     }
 
@@ -106,31 +140,31 @@ export class TuioListener extends Tuio11Listener {
      * Events caused by fingers
      * @param tuioCursor 
      */
-    addTuioCursor(tuioCursor){
+    addTuioCursor(tuioCursor) {
         // not implemented
     }
 
-    updateTuioCursor(tuioCursor){
+    updateTuioCursor(tuioCursor) {
         // not implemented
     }
 
-    removeTuioCursor(tuioCursor){
+    removeTuioCursor(tuioCursor) {
         // not implemented
     }
 
-    addTuioBlob(tuioBlob){
+    addTuioBlob(tuioBlob) {
         // not implemented
     }
 
-    updateTuioBlob(tuioBlob){
+    updateTuioBlob(tuioBlob) {
         // not implemented
     }
 
-    removeTuioBlob(tuioBlob){
+    removeTuioBlob(tuioBlob) {
         // not implemented
     }
 
-    refresh(frameTime){
+    refresh(frameTime) {
         // not implemented
     }
 

@@ -8,10 +8,19 @@ export class Tuio11Object extends Tuio11Container {
         this._angle = angle;
         this._rotationSpeed = rotationSpeed;
         this._rotationAccel = rotationAccel;
+        this._instanceId
     }
 
     get symbolId(){
         return this._symbolId;
+    }
+
+    get instanceId(){
+        return this._instanceId;
+    }
+
+    set instanceId(instanceId){
+        this._instanceId = instanceId;
     }
 
     get angle(){
