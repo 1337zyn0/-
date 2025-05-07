@@ -99,6 +99,7 @@ export class TuioListener extends Tuio11Listener {
         tuioObject.instanceId = node.instanceId
         node.isActive = true
         node.tuioObject = tuioObject
+        node.page = 1
         node.instanceId = parseInt(tuioObject.symbolId.toString() + objectNumber.toString())
         this._existingObjects.set(parseInt(tuioObject.symbolId.toString() + objectNumber.toString()), node)
         this._callback_on_update()

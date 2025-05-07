@@ -25,14 +25,14 @@ export class NodeManager {
         this.#debug(`Add node ${node.id} to NodeManager (${this.nodes.size} nodes in total)`)
     }
 
-    updateNode(instanceId, x, y){
-        if (this.instances.has(instanceId)) {
-            let node = this.instances.get(instanceId)
-            node.x = x
-            node.y = y
-            this.#debug(`Update node ${node.id} (${instanceId})`)
+    updateNode(node){
+        if (this.instances.has(node.instanceId)) {
+            let updatedNode = this.instances.get(node.instanceId)
+            updatedNode = node
+            console.log(updatedNode + " update node")
+            this.#debug(`Update node ${updatedNode.id} (${node.instanceId})`)
         } else {
-            this.#debug(`⚠ Attention | Cannot update node ${instanceId}`)
+            this.#debug(`⚠ Attention | Cannot update node ${node.instanceId}`)
         }
     }
 
@@ -53,6 +53,7 @@ export class NodeManager {
         Object.assign(newNode, helpNode)
         newNode.instanceId = parseInt(helpNode.tangible_id.toString() + objectNumber.toString())
         newNode.isActive = true
+        newNode.page = 1
         this.instances.set(parseInt(helpNode.tangible_id.toString() + objectNumber.toString()), newNode)
         this.#debug(`Add node ${newNode.id} to NodeManager (${this.nodes.size} nodes in total)`)
 
