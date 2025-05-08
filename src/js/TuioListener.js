@@ -126,7 +126,7 @@ export class TuioListener extends Tuio11Listener {
      * @returns 
      */
     removeTuioObject(tuioObject) {
-        this.#debug(`TuioObject removed (ID: ${tuioObject.symbolId}) at position (x: ${tuioObject.xPos}, y: ${tuioObject.yPos})`)
+        this.#debug(`TuioObject removed (ID: ${tuioObject.instanceId}) at position (x: ${tuioObject.x}, y: ${tuioObject.y})`)
         /* if (!this._tuioEntityMap.has(tuioObject.symbolId)) {
             this.#debug(`Tangible ID ${tuioObject.symbolId} has not been connected to an object.`)
             return false

@@ -315,7 +315,7 @@
         .data(nodeManager.getActiveNodes(), d => d.instanceId)
         .join(
           enter => {
-            console.log(nodeManager.getActiveNodes())
+            //console.log(nodeManager.getActiveNodes())
             let page1 = true
             let labelInhalt
             let labelName
@@ -516,10 +516,11 @@
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
                 } else {
-                  return 150 - 8
+                  return 130 - 8
                 }
               })
               .attr("fill", "black")
+              .classed("circleGroup", true)
 
             let pageCircle2 = nodeLabel
               .append("circle")
@@ -529,10 +530,11 @@
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
                 } else {
-                  return 150 - 8
+                  return 130 - 8
                 }
               })
               .attr("fill", "#8e968d")
+              .classed("circleGroup", true)
 
             let closeWindow = nodeLabel
               .append("circle")
@@ -542,6 +544,7 @@
               .attr("fill", "red")
               .on("click", function (d) {
                 tuioListener.removeTuioObject(d.srcElement.__data__)
+                console.log(d.srcElement.__data__)
                 nodeManager.removeNode(d.srcElement.__data__)
                 updateDiagram()
               })
@@ -556,6 +559,7 @@
               .text("X")
               .on("click", function (d) {
                 tuioListener.removeTuioObject(d.srcElement.__data__)
+                console.log(d.srcElement.__data__)
                 nodeManager.removeNode(d.srcElement.__data__)
                 updateDiagram()
               })
@@ -609,6 +613,7 @@
               .attr("dy", "0.5em")
 
             nodeLabel.select((d) => {
+
               if (d.logic.isTypeOf(NodeType.energyDevice)) {
                 nodeLabel.append((d) => {
 
@@ -638,8 +643,8 @@
               .classed("fill-white text-2xl font-bold", true)
 
             let labelHeight = (labelText.selectChildren("tspan").size() * 22) + 22
-            if (labelHeight < 150) {
-              labelHeight = 150
+            if (labelHeight < 120) {
+              labelHeight = 120
             }
 
             labelRect
@@ -651,10 +656,12 @@
               .classed("diagram d3-dependant-view", true)
 
             enter.select((d) => {
+              console.log(d)
               if (d.logic.isTypeOf(NodeType.energyDevice) && !d.logic.isTypeOf(NodeType.trafo)) {
                 d.logic.drawLoadDiagram(scenario.step, diagram)
               }
             })
+
 
             return nodeGroup;
           },
@@ -745,6 +752,17 @@
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_classic_text, false)
           .classed(globalThis.config.ui.classes.node_label_d3_text, true)
+        
+        d3.selectAll(".circleGroup").attr("cy", 280 - 8)
+        d3.selectAll(".circleGroup").attr("cy", 280 - 8)
+
+        d3.selectAll(".circleGroup").each(function(d){
+          console.log("trafo_d3")
+          if(d.id === "trafo_d3"){
+            d3.select(this).attr("cy", 110)
+            d3.select(this).attr("cy", 110)
+          }
+        })
       }
 
       function applyClassicStyle() {
@@ -766,6 +784,9 @@
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_d3_text, false)
           .classed(globalThis.config.ui.classes.node_label_classic_text, true)
+
+        d3.selectAll(".circleGroup").attr("cy", 120 - 8)
+        d3.selectAll(".circleGroup").attr("cy", 120 - 8)
       }
 
       function applyEmsStyle() {

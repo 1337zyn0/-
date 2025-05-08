@@ -29,7 +29,6 @@ export class NodeManager {
         if (this.instances.has(node.instanceId)) {
             let updatedNode = this.instances.get(node.instanceId)
             updatedNode = node
-            console.log(updatedNode + " update node")
             this.#debug(`Update node ${updatedNode.id} (${node.instanceId})`)
         } else {
             this.#debug(`⚠ Attention | Cannot update node ${node.instanceId}`)
@@ -39,6 +38,7 @@ export class NodeManager {
     addnewNode(nodeId) {
         let objectNumber = 0
         let helpNode = this.nodes.get(nodeId)
+        console.log(helpNode)
         this.instances.forEach((value, key) => {
             if (value.id === nodeId) {
                 if (objectNumber < 80) {
@@ -60,13 +60,14 @@ export class NodeManager {
     }
 
     removeNode(node) {
+        console.log(node)
         if (this.instances.has(node.instanceId)) {
             node.isActive = false
             this.instances.delete(node.instanceId)
             if(node.logic.isTypeOf(NodeType.trafo)){
                 this.nodes.get(node.id).isActive = false
+                console.log(this.nodes.get(node.id))
             }
-            console.log(this.instances.values())
             this.#debug(`Remove node ${node.instanceId} from NodeManager (${this.instances.size} nodes in total)`)
         } else {
             this.#debug(`⚠ Attention | Cannot remove node ${node.instanceId} from NodeManager`)

@@ -231,7 +231,6 @@ export class DevArea extends GuiElement {
                         break
                     default:
                         let tangibleId = that.nodeManager.getTangibleIdByNodeId(i.id)
-                        console.log("i.id" + i.id, i.name, tangibleId, i.x, i.y, 2)
                         that.nodeManager.addnewNode(i.id)
                         that.tuioListener.addTuioObject(new Tuio11Object(Date.now(), -1, tangibleId, (1 / globalThis.window.innerWidth * i.x), (1 / globalThis.window.innerHeight * i.y), 0, -1, -1, -1, -1, -1))
                 }
