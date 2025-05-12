@@ -65,10 +65,21 @@
 
     globalThis.config = config
 
+    const simulation = {}
+
     // Functions
     function initiateApplicationStart() {
       let jsonConfig = new JsonReader("./data/configuration.json")
+      let jsonSimulation = new JsonReader("./data/messages2022-07-23 05_15_00Z.json")
+      jsonSimulation.readFile(loadSimulationData)
       jsonConfig.readFile(applyConfig);
+    }
+
+    function loadSimulationData(receivedDict) {
+      // Apply external simulation data to local data
+      Object.entries(receivedDict).map(([key, value]) => {
+        simulation[key] = value
+      })
     }
 
     function applyConfig(receivedDict) {
@@ -76,7 +87,6 @@
       Object.entries(receivedDict).map(([key, value]) => {
         config[key] = value
       })
-
       start()
     }
 
@@ -88,6 +98,8 @@
       tuioClient.addTuioListener(tuioListener)
       tuioClient.connect()
 
+      nodeManager.simulation = simulation
+      scenario.simulationData = simulation
       scenario.scenarioSteps = config.scenario.steps
       scenario.step = config.scenario.start_with_step
       scenario.co2emissionGramPerKwh = config.scenario.co2emission_gram_per_kwh
@@ -102,13 +114,12 @@
 
     function onTuioUpdate() {
 
-      nodeManager.getNodes().map((node) => {
+      nodeManager.getActiveInstances().map((node) => {
         // update scenario devices
         if (node.isActive && node.logic.isTypeOf(NodeType.energyDevice)) {
-          scenario.addEnergyDevice(node.id, node.logic)
-
-        } else if (!node.isActive && node.logic.isTypeOf(NodeType.energyDevice)) {
-          scenario.removeEnergyDevice(node.id)
+          scenario.addEnergyDevice(node.instanceId, node)
+        } else if (!nodeManager.isInstanceActive(node.instanceId) && node.logic.isTypeOf(NodeType.energyDevice)) {
+          scenario.removeEnergyDevice(node.instanceId)
         }
 
         // update node with latest tuioObject
@@ -240,7 +251,20 @@
       d.x = event.x
       d.y = event.y
       nodeManager.updateNode(d)
-      tuioListener.updateTuioObject(tuioObject)
+      try{
+        tuioListener.updateTuioObject(tuioObject)
+      } catch(error){
+        if(error.message === "Cannot set properties of undefined (setting 'isActive')"){
+          tuioListener.addTuioObject(tuioObject)
+        }
+      }
+    }
+
+    function deleteNode(node) {
+      tuioListener.removeTuioObject(node)
+      nodeManager.removeNode(node)
+      scenario.removeEnergyDevice(node.instanceId)
+      updateDiagram()
     }
 
     function updateElectricityLines() {
@@ -315,7 +339,7 @@
         .data(nodeManager.getActiveNodes(), d => d.instanceId)
         .join(
           enter => {
-            //console.log(nodeManager.getActiveNodes())
+            console.log(nodeManager.getActiveNodes())
             let page1 = true
             let labelInhalt
             let labelName
@@ -366,7 +390,7 @@
                 .on("start", null)
                 .on("drag", null)
                 .on("end", null))
-
+                    
             let labelRect = nodeLabel
               .append("rect")
               .attr('width', 530)
@@ -381,6 +405,7 @@
                 .on("end", function (event, d) {
                   if (startX > event.x) {
                     if (d.page == 1) {
+                      console.log(d.instanceId)
                       labelText
                         .classed("invisible", true)
                       labelText2
@@ -543,10 +568,8 @@
               .attr("cy", 18)
               .attr("fill", "red")
               .on("click", function (d) {
-                tuioListener.removeTuioObject(d.srcElement.__data__)
-                console.log(d.srcElement.__data__)
-                nodeManager.removeNode(d.srcElement.__data__)
-                updateDiagram()
+                deleteNode(d.srcElement.__data__)
+
               })
 
             let closeWindowText = nodeLabel
@@ -558,10 +581,7 @@
               .attr("font-size", "23px")
               .text("X")
               .on("click", function (d) {
-                tuioListener.removeTuioObject(d.srcElement.__data__)
-                console.log(d.srcElement.__data__)
-                nodeManager.removeNode(d.srcElement.__data__)
-                updateDiagram()
+                deleteNode(d.srcElement.__data__)
               })
 
             labelRect.select(d => {
@@ -656,7 +676,6 @@
               .classed("diagram d3-dependant-view", true)
 
             enter.select((d) => {
-              console.log(d)
               if (d.logic.isTypeOf(NodeType.energyDevice) && !d.logic.isTypeOf(NodeType.trafo)) {
                 d.logic.drawLoadDiagram(scenario.step, diagram)
               }
@@ -752,13 +771,12 @@
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_classic_text, false)
           .classed(globalThis.config.ui.classes.node_label_d3_text, true)
-        
+
         d3.selectAll(".circleGroup").attr("cy", 280 - 8)
         d3.selectAll(".circleGroup").attr("cy", 280 - 8)
 
-        d3.selectAll(".circleGroup").each(function(d){
-          console.log("trafo_d3")
-          if(d.id === "trafo_d3"){
+        d3.selectAll(".circleGroup").each(function (d) {
+          if (d.id === "trafo_d3") {
             d3.select(this).attr("cy", 110)
             d3.select(this).attr("cy", 110)
           }
@@ -842,7 +860,7 @@
       .attr('class', 'h-full w-full')
       .attr('class', 'bg-[url("./images/bg-blue_big.webp")] bg-cover border-solid border-black border-2 border-blue-400')
 
-    const sidebar = new SideBarSmall(svg, scenario)
+    const sidebar = new SideBarSmall(svg, nodeManager, scenario)
     sidebar.x = width
     sidebar.y = height
 

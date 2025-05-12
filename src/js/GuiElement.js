@@ -3,6 +3,7 @@ import { toMultilineText } from "./helper.js"
 import { ScenarioSimulator, ScenarioState } from "./ScenarioSimulator.js"
 import { Tuio11Object } from "../libs/tuio11/Tuio11Object.js";
 
+
 class GuiElement {
     constructor(guiRef) {
         this.guiRef = guiRef
@@ -323,8 +324,9 @@ export class Time extends GuiElement {
 }
 
 export class SideBarSmall extends GuiElement {
-    constructor(guiRef, scenario) {
+    constructor(guiRef, nodeManager, scenario) {
         super(guiRef)
+        this.nodeManager = nodeManager
         this._scenario = scenario
     }
 
@@ -440,6 +442,36 @@ export class SideBarSmall extends GuiElement {
         text += "Der wichtigste Schritt dahin ist die Energietransparenz."
 
         toMultilineText(footerText, text, 55, "fill-white font-normal text-sm")
+
+        let textHeight = Math.ceil(text.length / 55) * 23
+
+        const footerButton = panelFooter
+            .append("g")
+            .attr("transform", d => `translate(${padding}, ${padding + textHeight + 10})`)
+            .attr("width", 55)
+            .attr("height", 50)
+            .attr("fill", "white")
+            .style("cursor", "pointer")
+            .on("click", (d) => {
+                this.nodeManager.initiateSimulation()
+                this._scenario.loadSimulation()
+            })
+
+        footerButton
+            .append("rect")
+            .attr("width", 170)
+            .attr("height", 30)
+            .attr("fill", "blue")
+            .style("cursor", "pointer")
+
+        footerButton
+            .append("text")
+            .attr("width", 55)
+            .attr("height", 50)
+            .attr("x", 85)
+            .attr("y", 18)
+            .attr("text-anchor", "middle")
+            .text("Lade Simulationsdatei")
 
         function drawPanelHeader(ref) {
             const panelHeader = ref

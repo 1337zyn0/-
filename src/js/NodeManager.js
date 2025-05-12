@@ -1,11 +1,15 @@
 import { NodeType } from "./NodeType.js"
-import { Node } from "./Nodes.js"
 
 export class NodeManager {
     constructor() {
         this._isDebugOn = false
         this.nodes = new Map()
         this.instances = new Map()
+        this.simulation
+    }
+
+    set simulationData(simulationData) {
+        this.simulation = simulationData
     }
 
     /**
@@ -25,7 +29,7 @@ export class NodeManager {
         this.#debug(`Add node ${node.id} to NodeManager (${this.nodes.size} nodes in total)`)
     }
 
-    updateNode(node){
+    updateNode(node) {
         if (this.instances.has(node.instanceId)) {
             let updatedNode = this.instances.get(node.instanceId)
             updatedNode = node
@@ -35,10 +39,9 @@ export class NodeManager {
         }
     }
 
-    addnewNode(nodeId) {
+    addnewNode(nodeId, agentID) {
         let objectNumber = 0
         let helpNode = this.nodes.get(nodeId)
-        console.log(helpNode)
         this.instances.forEach((value, key) => {
             if (value.id === nodeId) {
                 if (objectNumber < 80) {
@@ -54,19 +57,19 @@ export class NodeManager {
         newNode.instanceId = parseInt(helpNode.tangible_id.toString() + objectNumber.toString())
         newNode.isActive = true
         newNode.page = 1
+        newNode.agentID = agentID
         this.instances.set(parseInt(helpNode.tangible_id.toString() + objectNumber.toString()), newNode)
         this.#debug(`Add node ${newNode.id} to NodeManager (${this.nodes.size} nodes in total)`)
 
     }
 
     removeNode(node) {
-        console.log(node)
+        console.log(this.instances.get(node.instanceId))
         if (this.instances.has(node.instanceId)) {
             node.isActive = false
             this.instances.delete(node.instanceId)
-            if(node.logic.isTypeOf(NodeType.trafo)){
+            if (node.logic.isTypeOf(NodeType.trafo)) {
                 this.nodes.get(node.id).isActive = false
-                console.log(this.nodes.get(node.id))
             }
             this.#debug(`Remove node ${node.instanceId} from NodeManager (${this.instances.size} nodes in total)`)
         } else {
@@ -81,6 +84,14 @@ export class NodeManager {
 
     getNodes() {
         return Array.from(this.nodes.values())
+    }
+
+    getActiveInstances() {
+        return Array.from(this.instances.values())
+    }
+
+    isInstanceActive(instanceId) {
+        return this.instances.has(instanceId)
     }
 
     isNodeActive(nodeId) {
@@ -421,5 +432,46 @@ export class NodeManager {
             return trafo
         }
         return energyNode
+    }
+
+    initiateSimulation() {
+        let agents = new Array()
+        let x = 400
+        let y = 600
+        let numberAdded = 0
+        this.instances.clear()
+        for (let i = 0; i < Object.keys(this.simulation).length; i++) {
+            //console.log(this.simulation[Object.keys(this.simulation)[i]].sender)
+            /* if(!agents.includes(this.simulation[Object.keys(this.simulation)[i]].sender)){
+                agents.push(this.simulation[Object.keys(this.simulation)[i]].sender)
+            } */
+            for (let j = 0; j < Object.keys(this.simulation[Object.keys(this.simulation)[i]].receivers).length; j++) {
+                //console.log((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])
+                if (!agents.includes((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])) {
+                    agents.push((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])
+                }
+            }
+        }
+        agents.forEach(agent => {
+            this.addnewNode("pv_system", agent)
+        })
+        console.log(this.instances)
+
+        for (let i = 0; i < agents.length; i++) {
+            for (let j of this.instances.values()) {
+                if (j.agentID == agents[i]) {
+                    j.x = x
+                    j.y = y
+                    numberAdded++
+                    x = x + 300
+                    if(numberAdded == 5){
+                        y = y + 500
+                        x = 400
+                    }
+                    this.updateNode(j)
+                    console.log(this.instances)
+                }
+            }
+        }
     }
 }
