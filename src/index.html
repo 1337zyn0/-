@@ -34,7 +34,7 @@
 
   <script type="module">
     // internal classes
-    import { CsvReader, JsonReader, toMultilineText } from "./js/helper.js"
+    import { CsvReader, JsonReader, toMultilineText, wrapTextArray } from "./js/helper.js"
     import { ScenarioState, ScenarioSimulator } from "./js/ScenarioSimulator.js"
     import { Heatpump, PVSystem, Crane, OfficeBuilding, Battery, TrafoClassic, TrafoD3, Wallbox } from "./js/EnergyDevices.js"
     import { TuioListener } from "./js/TuioListener.js"
@@ -99,6 +99,7 @@
       tuioClient.connect()
 
       nodeManager.simulation = simulation
+      tuioListener.simulation = simulation
       scenario.simulationData = simulation
       scenario.scenarioSteps = config.scenario.steps
       scenario.step = config.scenario.start_with_step
@@ -251,13 +252,7 @@
       d.x = event.x
       d.y = event.y
       nodeManager.updateNode(d)
-      try{
-        tuioListener.updateTuioObject(tuioObject)
-      } catch(error){
-        if(error.message === "Cannot set properties of undefined (setting 'isActive')"){
-          tuioListener.addTuioObject(tuioObject)
-        }
-      }
+      tuioListener.updateTuioObject(tuioObject)
     }
 
     function deleteNode(node) {
@@ -334,12 +329,13 @@
     }
 
     function updateNodes() {
+      let labelText
       d3.select("#nodes")
         .selectAll(".node")
         .data(nodeManager.getActiveNodes(), d => d.instanceId)
         .join(
           enter => {
-            console.log(nodeManager.getActiveNodes())
+            //console.log(nodeManager.getActiveNodes())
             let page1 = true
             let labelInhalt
             let labelName
@@ -390,12 +386,16 @@
                 .on("start", null)
                 .on("drag", null)
                 .on("end", null))
-                    
+
             let labelRect = nodeLabel
               .append("rect")
-              .attr('width', 530)
-              .attr('height', 40)
-              .attr("id", d => d.id)
+              .attr("width", function (d) {
+                return globalThis.window.innerWidth / 12
+              })
+              .attr('height', function (d) {
+                return globalThis.window.innerHeight / 5
+              })
+              .attr("id", d => "labelRect-" + d.instanceId)
               .classed("nodeLabel", true)
               .attr('rx', '3')
               .call(d3.drag()
@@ -404,31 +404,30 @@
                 })
                 .on("end", function (event, d) {
                   if (startX > event.x) {
-                    if (d.page == 1) {
-                      console.log(d.instanceId)
-                      labelText
-                        .classed("invisible", true)
-                      labelText2
-                        .classed("invisible", false)
-                      pageCircle
-                        .attr("fill", "#8e968d")
-                      pageCircle2
-                        .attr("fill", "black")
-                      d.page = 2
-                      nodeManager.updateNode(d)
+                    switch (d.page) {
+                      case 0:
+                        d.page = 1
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
+                      case 1:
+                        d.page = 2
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
                     }
                   } else if (startX < event.x) {
-                    if (d.page == 2) {
-                      labelText
-                        .classed("invisible", false)
-                      labelText2
-                        .classed("invisible", true)
-                      pageCircle
-                        .attr("fill", "black")
-                      pageCircle2
-                        .attr("fill", "#8e968d")
-                      d.page = 1
-                      nodeManager.updateNode(d)
+                    switch (d.page) {
+                      case 1:
+                        d.page = 0
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
+                      case 2:
+                        d.page = 1
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
                     }
                   }
                 }))
@@ -439,13 +438,14 @@
               }
             })
 
-            let labelText = nodeLabel
+            labelText = nodeLabel
               .append("text")
-              .attr("id", d => d.id)
-              .attr("x", 15)
-              .attr("y", 25)
+              .attr("id", d => "text-" + d.instanceId)
+              .attr("x", 5)
+              .attr("y", 20)
               .classed('text-2xl', true)
               .classed("invisible", false)
+              .classed("labelText", true)
               .text(function (d) {
                 labelName = d.name
                 if (page1) {
@@ -459,84 +459,41 @@
                 })
                 .on("end", function (event, d) {
                   if (startX > event.x) {
-                    if (d.page == 1) {
-                      labelText
-                        .classed("invisible", true)
-                      labelText2
-                        .classed("invisible", false)
-                      pageCircle
-                        .attr("fill", "#8e968d")
-                      pageCircle2
-                        .attr("fill", "black")
-                      d.page = 2
-                      nodeManager.updateNode(d)
+                    switch (d.page) {
+                      case 0:
+                        d.page = 1
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
+                      case 1:
+                        d.page = 2
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
                     }
                   } else if (startX < event.x) {
-                    if (d.page == 2) {
-                      labelText
-                        .classed("invisible", false)
-                      labelText2
-                        .classed("invisible", true)
-                      pageCircle
-                        .attr("fill", "black")
-                      pageCircle2
-                        .attr("fill", "#8e968d")
-                      d.page = 1
-                      nodeManager.updateNode(d)
-                    }
-                  }
-                }))
-
-            let labelText2 = nodeLabel
-              .append("text")
-              .attr("id", d => d.id)
-              .attr("x", 15)
-              .attr("y", 25)
-              .classed('text-2xl', true)
-              .classed("invisible", true)
-              .classed("text-2xl font-mono fill-white description text-xl font-bold", true)
-              .text(function (d) {
-                labelName = d.name
-                return labelName + " " + "Agent-View"
-              })
-              .call(d3.drag()
-                .on("start", function (event, d) {
-                  startX = event.x
-                })
-                .on("end", function (event, d) {
-                  if (startX > event.x) {
-                    if (d.page == 1) {
-                      labelText
-                        .classed("invisible", true)
-                      labelText2
-                        .classed("invisible", false)
-                      pageCircle
-                        .attr("fill", "#8e968d")
-                      pageCircle2
-                        .attr("fill", "black")
-                      d.page = 2
-                      nodeManager.updateNode(d)
-                    }
-                  } else if (startX < event.x) {
-                    if (d.page == 2) {
-                      labelText
-                        .classed("invisible", false)
-                      labelText2
-                        .classed("invisible", true)
-                      pageCircle
-                        .attr("fill", "black")
-                      pageCircle2
-                        .attr("fill", "#8e968d")
-                      d.page = 1
-                      nodeManager.updateNode(d)
+                    switch (d.page) {
+                      case 1:
+                        d.page = 0
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
+                      case 2:
+                        d.page = 1
+                        nodeManager.updateNode(d)
+                        updateDiagram()
+                        break
                     }
                   }
                 }))
 
             let pageCircle = nodeLabel
               .append("circle")
+              .attr("id", d => "pageCircle1-" + d.instanceId)
               .attr("r", 5)
-              .attr("cx", 255)
+              .attr("cx", function () {
+                return (globalThis.window.innerWidth / 12) / 2 - 20
+              })
               .attr("cy", function (d) {
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
@@ -549,13 +506,33 @@
 
             let pageCircle2 = nodeLabel
               .append("circle")
+              .attr("id", d => "pageCircle2-" + d.instanceId)
               .attr("r", 5)
-              .attr("cx", 275)
+              .attr("cx", function () {
+                return (globalThis.window.innerWidth / 12) / 2
+              })
               .attr("cy", function (d) {
                 if (!d.logic.isTypeOf(NodeType.trafo)) {
                   return 280 - 8
                 } else {
-                  return 130 - 8
+                  return 80 - 8
+                }
+              })
+              .attr("fill", "#8e968d")
+              .classed("circleGroup", true)
+
+            let pageCircle3 = nodeLabel
+              .append("circle")
+              .attr("id", d => "pageCircle3-" + d.instanceId)
+              .attr("r", 5)
+              .attr("cx", function () {
+                return (globalThis.window.innerWidth / 12) / 2 + 20
+              })
+              .attr("cy", function (d) {
+                if (!d.logic.isTypeOf(NodeType.trafo)) {
+                  return 280 - 8
+                } else {
+                  return 80 - 8
                 }
               })
               .attr("fill", "#8e968d")
@@ -563,22 +540,41 @@
 
             let closeWindow = nodeLabel
               .append("circle")
-              .attr("r", 15)
-              .attr("cx", 513)
-              .attr("cy", 18)
+              .attr("id", d => "closeWindow-" + d.instanceId)
+              .attr("r", function (d) {
+                return globalThis.window.innerWidth / 293
+              })
+              .attr("cx", function (d) {
+                if ((globalThis.window.innerWidth / 12) < 190) {
+                  return 190 - (globalThis.window.innerWidth / 250)
+                }
+                return globalThis.window.innerWidth / 12 - (globalThis.window.innerWidth / 293)
+              })
+              .attr("cy", function () {
+                return (globalThis.window.innerWidth / 293)
+              })
               .attr("fill", "red")
               .on("click", function (d) {
                 deleteNode(d.srcElement.__data__)
-
               })
-
+            //.attr("cx", 513)
             let closeWindowText = nodeLabel
               .append("text")
-              .attr("x", 506)
-              .attr("y", 25)
+              .attr("id", d => "closeWindowText-" + d.instanceId)
+              .attr("x", function (d) {
+                if ((globalThis.window.innerWidth / 12) < 190) {
+                  return (190 - (globalThis.window.innerWidth / 172))
+                }
+                return globalThis.window.innerWidth / 12.5 - (globalThis.window.innerWidth / 293) / 1.5
+              })
+              .attr("y", function () {
+                return (globalThis.window.innerWidth / 180)
+              })
               .classed("invisible", false)
               .attr("fill", "white")
-              .attr("font-size", "23px")
+              .attr("font-size", function () {
+                return (globalThis.window.innerWidth / 160) + "px"
+              })
               .text("X")
               .on("click", function (d) {
                 deleteNode(d.srcElement.__data__)
@@ -613,45 +609,26 @@
               }
             })
 
-
-            labelText.select(d => {
+            /* labelText.select(d => {
               toMultilineText(labelText, d.description, labelRect.attr("width") * 0.11 - 19, "text-base font-normal", 15)
-            })
+            }) */
             labelText
               .insert("tspan", ":first-child")
               .text(" ")
               .attr("x", 0)
               .attr("dy", "0.5em")
 
-            labelText2.select(d => {
+
+            /* labelText2.select(d => {
               toMultilineText(labelText2, "Dies ist die AgentenView. Hier werden einige Optimierungsschritte verdeutlicht", labelRect.attr("width") * 0.11 - 19, "fill-white text-3xl text-base font-normal", 15)
             })
             labelText2
               .insert("tspan", ":first-child")
               .text(" ")
               .attr("x", 0)
-              .attr("dy", "0.5em")
+              .attr("dy", "0.5em") */
 
-            nodeLabel.select((d) => {
 
-              if (d.logic.isTypeOf(NodeType.energyDevice)) {
-                nodeLabel.append((d) => {
-
-                  let tile = new TileIconTextGroup()
-                  tile.width = 150
-                  tile.height = 60
-                  tile.x = labelRect.attr('width') - 160
-                  tile.y = 46
-                  tile.textHead = d.logic.nowInW >= 0 ? "Verbrauch" : "Erzeugung"
-                  tile.textValue = Math.abs(Math.round((d.logic.nowInW / 1000)))
-                  tile.cssValue = "d3-dependant-view"
-                  tile.textUnit = "kW"
-                  tile.iconPath = globalThis.config.ui.icons.bolt
-                  tile.draw()
-                  return tile.element.node()
-                })
-              }
-            })
 
             enter.selectAll(".tile-text-head")
               .classed("fill-gray-200 text-base font-normal", true)
@@ -673,6 +650,8 @@
             let diagram = nodeLabel
               .append("g")
               .attr("transform", d => `translate(40, 130)`)
+              .attr("id", d => "diagram-" + d.instanceId)
+              .classed("invisible", false)
               .classed("diagram d3-dependant-view", true)
 
             enter.select((d) => {
@@ -700,10 +679,69 @@
               .classed("invisible", !nodeManager.isNodeActive('trafo_d3'))
 
             update.select((d) => {
+              if (d.page == 0) {
+                let x = wrapTextArray(d.agentID, (globalThis.window.innerWidth / 11) * 0.11 - 19)
+                d3.select("#labelRect-" + d.instanceId)
+                  .attr("width", function () {
+                    if ((globalThis.window.innerWidth / 12) < 190) {
+                      return 190 + globalThis.window.innerWidth / 293
+                    }
+                    return globalThis.window.innerWidth / 12
+                  })
+                  .attr("height", function () {
+                    console.log(globalThis.window.innerHeight / 24)
+                    if ((globalThis.window.innerHeight / 24) < 40) {
+                      return 40
+                    }
+                    return globalThis.window.innerHeight / 24
+                  })
+                for (let i = 0; i <= x.length; i++) {
+                  d3.select("#text-" + d.instanceId).selectChildren("tspan").filter((d, j) => j > [i]).text(" ")
+                }
+                changeDots(d, d.page)
+                d3.select("#diagram-" + d.instanceId).classed("invisible", true)
+                d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
+              }
+              if (d.page == 1) {
+                d3.select("#text-" + d.instanceId).select(d => {
+                  toMultilineText(d3.select("#text-" + d.instanceId), d.description, d3.select("#labelRect-" + d.instanceId).attr("width") * 0.11 - 19, "text-base font-normal", 15)
+                })
+                d3.select("#labelRect-" + d.instanceId).attr("width", globalThis.window.innerWidth / 4.2)
+                d3.select("#labelRect-" + d.instanceId).attr("height", globalThis.window.innerWidth / 12)
+                let x = wrapTextArray(d.description, 530 * 0.11 - 19)
+                for (let i = 0; i <= x.length; i++) {
+                  if (x[i] === x[i + 1]) {
+                    d3.select("#text-" + d.instanceId).selectChildren("tspan").filter((d, j) => j > [i]).text(" ")
+                  } else {
+                    d3.select("#text-" + d.instanceId).selectChildren("tspan").filter((d, j) => j > [i]).text(x[i])
+                  }
+                }
+                changeDots(d, d.page)
+                if (nodeManager.isNodeActive("trafo_d3")) {
+                  d3.select("#diagram-" + d.instanceId).classed("invisible", false)
+                  d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", true)
+                }
+              } else if (d.page == 2) {
+                let x = wrapTextArray(d.agentView, 530 * 0.11 - 19)
+                for (let i = 0; i <= x.length; i++) {
+                  if (x[i] === x[i + 1]) {
+                    d3.select("#text-" + d.instanceId).selectChildren("tspan").filter((d, j) => j > [i]).text(" ")
+                  } else {
+                    d3.select("#text-" + d.instanceId).selectChildren("tspan").filter((d, j) => j > [i]).text(x[i])
+                  }
+                }
+                changeDots(d, d.page)
+                d3.select("#diagram-" + d.instanceId).classed("invisible", true)
+                d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
+              }
+            })
+
+            update.select((d) => {
               if (d.logic.isTypeOf(NodeType.energyDevice) && !d.logic.isTypeOf(NodeType.trafo)) {
                 d.logic.drawLoadDiagram(scenario.step)
               }
             })
+            return update
           },
 
           // apply on deleted data
@@ -735,6 +773,150 @@
         .classed("invisible", (nodeManager.isNodeActive("trafo_d3") && nodeManager.isNodeActive("qems")))
     }
 
+    function changeDots(d, page) {
+
+      d3.select("#pageCircle1-" + d.instanceId)
+        .attr("fill", function (d) {
+          switch (d.page) {
+            case 0:
+              return "black"
+              break
+            case 1:
+            case 2:
+              return "#8e968d"
+              break
+          }
+        })
+        .attr("cx", function (d) {
+          switch (d.page) {
+            case 0:
+              if ((globalThis.window.innerWidth / 12) < 190) {
+                return 190 + globalThis.window.innerWidth / 293 - 20
+              }
+              return (globalThis.window.innerWidth / 12) / 2 - 20
+              break
+            case 1:
+            case 2:
+              if ((globalThis.window.innerWidth / 4.2) < 190) {
+                return 190 + globalThis.window.innerWidth / 293 - 20
+              }
+              return (globalThis.window.innerWidth / 4.2) / 2 - 20
+              break
+          }
+        })
+
+      d3.select("#pageCircle2-" + d.instanceId)
+        .attr("fill", function (d) {
+          switch (d.page) {
+            case 0:
+            case 2:
+              return "#8e968d"
+              break
+            case 1:
+              return "black"
+              break
+          }
+        })
+        .attr("cx", function (d) {
+          switch (d.page) {
+            case 0:
+              if ((globalThis.window.innerWidth / 12) < 190) {
+                return 190 + globalThis.window.innerWidth / 293
+              }
+              return (globalThis.window.innerWidth / 12) / 2
+              break
+            case 1:
+            case 2:
+              if ((globalThis.window.innerWidth / 4.2) < 190) {
+                return 190 + globalThis.window.innerWidth / 293
+              }
+              return (globalThis.window.innerWidth / 4.2) / 2
+              break
+          }
+        })
+
+      d3.select("#pageCircle3-" + d.instanceId)
+        .attr("fill", function (d) {
+          switch (d.page) {
+            case 0:
+            case 1:
+              return "#8e968d"
+              break
+            case 2:
+              return "black"
+              break
+          }
+        })
+        .attr("cx", function (d) {
+          switch (d.page) {
+            case 0:
+              if ((globalThis.window.innerWidth / 12) < 190) {
+                return 190 + globalThis.window.innerWidth / 293
+              }
+              return (globalThis.window.innerWidth / 12) / 2 + 20
+              break
+            case 1:
+            case 2:
+              if ((globalThis.window.innerWidth / 4.2) < 190) {
+                return 190 + globalThis.window.innerWidth / 293
+              }
+              return (globalThis.window.innerWidth / 4.2) / 2 + 20
+              break
+          }
+        })
+
+      d3.select("#closeWindow-" + d.instanceId)
+        .attr("cx", function (d) {
+          switch (d.page) {
+            case 0:
+              if ((globalThis.window.innerWidth / 12) < 190) {
+                return 190 - (globalThis.window.innerWidth / 250)
+              }
+              return globalThis.window.innerWidth / 12 - (globalThis.window.innerWidth / 293)
+              break
+            case 1:
+            case 2:
+              if ((globalThis.window.innerWidth / 4.222) < 190) {
+                return 190 - (globalThis.window.innerWidth / 250)
+              }
+              return globalThis.window.innerWidth / 4.222 - (globalThis.window.innerWidth / 293)
+              break
+          }
+        })
+        .attr("r", function (d) {
+          switch (d.page) {
+            case 0:
+              return globalThis.window.innerWidth / 293
+              break
+            case 1:
+            case 2:
+              return globalThis.window.innerWidth / 230
+              break
+          }
+        })
+
+
+      d3.select("#closeWindowText-" + d.instanceId).attr("x", function (d) {
+        switch (d.page) {
+          case 0:
+            if ((globalThis.window.innerWidth / 12) < 190) {
+              return (190 - (globalThis.window.innerWidth / 172))
+            }
+            return globalThis.window.innerWidth / 12.5 - (globalThis.window.innerWidth / 293) / 1.5
+            break
+          case 1:
+          case 2:
+            if ((globalThis.window.innerWidth / 4.2) < 190) {
+              return 190 - (globalThis.window.innerWidth / 172)
+            }
+            return globalThis.window.innerWidth / 4.2 - (globalThis.window.innerWidth / 293) / 0.65
+            break
+        }
+      })
+
+
+    }
+
     function updateLabelClasses() {
 
       applyDefaultOnClassicAndUi()
@@ -761,26 +943,42 @@
 
         d3.selectAll(".labelGroup").filter(".classic").filter(":not(.ui)").select("rect")
           .attr("height", d => {
-            if (!d.logic.isTypeOf(NodeType.trafo)) {
-              return 280
+            if (d.page === 0) {
+              return 40
             }
+            return globalThis.window.innerHeight / 6
 
-            return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
+            //return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
           })
 
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_classic_text, false)
           .classed(globalThis.config.ui.classes.node_label_d3_text, true)
 
-        d3.selectAll(".circleGroup").attr("cy", 280 - 8)
-        d3.selectAll(".circleGroup").attr("cy", 280 - 8)
+        d3.selectAll(".circleGroup").attr("cy", function (d) {
+          if (d.page === 0) {
+            return 40 - 8
+          } else if (d.page === 1) {
+            if ((globalThis.window.innerHeight / 12) < 40) {
+              return 40 - 8 + 130
+            }
+            return globalThis.window.innerHeight / 12 + 130
+            return
+          } else if (d.page === 2) {
+            if ((globalThis.window.innerHeight / 12) < 40) {
+              return 40 - 8 + 130
+            }
+            return globalThis.window.innerHeight / 12 + 130
+            return
+          }
+        })
 
-        d3.selectAll(".circleGroup").each(function (d) {
+        /* d3.selectAll(".circleGroup").each(function (d) {
           if (d.id === "trafo_d3") {
             d3.select(this).attr("cy", 110)
             d3.select(this).attr("cy", 110)
           }
-        })
+        }) */
       }
 
       function applyClassicStyle() {
@@ -792,6 +990,9 @@
           .attr("height", d => {
 
             if (!d.logic.isTypeOf(NodeType.trafo)) {
+              if (d.page === 0) {
+                return 40
+              }
               return 120
             }
 
@@ -803,8 +1004,14 @@
           .classed(globalThis.config.ui.classes.node_label_d3_text, false)
           .classed(globalThis.config.ui.classes.node_label_classic_text, true)
 
-        d3.selectAll(".circleGroup").attr("cy", 120 - 8)
-        d3.selectAll(".circleGroup").attr("cy", 120 - 8)
+        d3.selectAll(".circleGroup").attr("cy", d => {
+          if (!d.logic.isTypeOf(NodeType.trafo)) {
+            if (d.page === 0) {
+              return 40 - 8
+            }
+            return 120 - 8
+          }
+        })
       }
 
       function applyEmsStyle() {
@@ -816,9 +1023,19 @@
       }
 
       function applyD3DependantContent() {
-        d3.selectAll(".d3-dependant-view")
-          .classed("invisible", !nodeManager.isNodeActive("trafo_d3"))
+        try {
+          d3.selectAll(".d3-dependant-view").classed("invisible", function (d) {
+            if (d.page === 0) {
+              return true
+            } else {
+              return !nodeManager.isNodeActive("trafo_d3")
+            }
+          })
+        } catch (error) {
+          //console.log(error)
+        }
       }
+      //.classed("invisible", !nodeManager.isNodeActive("trafo_d3"))
 
       function applyD3AndEmsDependantContent() {
         d3.selectAll(".ems-dependant-view")
@@ -860,7 +1077,7 @@
       .attr('class', 'h-full w-full')
       .attr('class', 'bg-[url("./images/bg-blue_big.webp")] bg-cover border-solid border-black border-2 border-blue-400')
 
-    const sidebar = new SideBarSmall(svg, nodeManager, scenario)
+    const sidebar = new SideBarSmall(svg, nodeManager, tuioListener, scenario)
     sidebar.x = width
     sidebar.y = height
 

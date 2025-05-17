@@ -1,4 +1,5 @@
 import { Tuio11Listener } from "../libs/tuio11/Tuio11Listener.js";
+import { Tuio11Object } from "../libs/tuio11/Tuio11Object.js";
 import { Node } from './Nodes.js'
 
 /**
@@ -13,6 +14,8 @@ export class TuioListener extends Tuio11Listener {
         this._callback_on_update = defaultCb;
         this._existingObjects = new Map();
         this._nodeToTuioObjectMap = new Map();
+        this._simulation
+        this._simulationAgents
     }
 
     /**
@@ -135,6 +138,23 @@ export class TuioListener extends Tuio11Listener {
             this._existingObjects.delete(tuioObject.instanceId)
         }
         this._callback_on_update()
+    }
+
+    initiateSimulation(globalThis){
+        this._existingObjects.clear()
+        let agents = new Array()
+        for (let i = 0; i < Object.keys(this.simulation).length; i++) {
+            for (let j = 0; j < Object.keys(this.simulation[Object.keys(this.simulation)[i]].receivers).length; j++) {
+                if (!agents.includes((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])) {
+                    agents.push((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])
+                }
+            }
+        }
+        for(let i = 0; i < agents.length; i++){
+            let newTuio = new Tuio11Object(Date.now(), -1, 15, (1 / globalThis.window.innerWidth * i.x), (1 / globalThis.window.innerHeight * i.y), 0, -1, -1, -1, -1, -1)
+            newTuio.agentID = agents[i]
+            this.addTuioObject(newTuio)
+        }
     }
 
     /**

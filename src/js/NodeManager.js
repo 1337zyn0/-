@@ -56,8 +56,9 @@ export class NodeManager {
         Object.assign(newNode, helpNode)
         newNode.instanceId = parseInt(helpNode.tangible_id.toString() + objectNumber.toString())
         newNode.isActive = true
-        newNode.page = 1
+        newNode.page = 0
         newNode.agentID = agentID
+        newNode.agentView = "Platzhalter für eine später hinzugefügte AgentView, Scheduel, Diagramm..."
         this.instances.set(parseInt(helpNode.tangible_id.toString() + objectNumber.toString()), newNode)
         this.#debug(`Add node ${newNode.id} to NodeManager (${this.nodes.size} nodes in total)`)
 
@@ -452,26 +453,29 @@ export class NodeManager {
                 }
             }
         }
+
         agents.forEach(agent => {
             this.addnewNode("pv_system", agent)
         })
-        console.log(this.instances)
 
         for (let i = 0; i < agents.length; i++) {
             for (let j of this.instances.values()) {
                 if (j.agentID == agents[i]) {
                     j.x = x
                     j.y = y
+                    j.agentView = "Dies ist ein Beispieltext für die AgentView"
+                    j.page = 0
                     numberAdded++
-                    x = x + 300
-                    if(numberAdded == 5){
-                        y = y + 500
-                        x = 400
+                    if (numberAdded === 5) {
+                        x = 1100
+                        y = 300
                     }
+                    x = x + 400
+                    y = y + 200
                     this.updateNode(j)
-                    console.log(this.instances)
                 }
             }
         }
+        console.log(this.instances)
     }
 }

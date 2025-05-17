@@ -156,7 +156,7 @@ export class ScenarioSimulator {
         return ScenarioSimulator.getTimeByStep(this._step)
     }
 
-    loadSimulation(){
+    initiateSimulation(){
         console.log("H")
     }
 
@@ -333,7 +333,6 @@ export class ScenarioSimulator {
                 return accumulator + currentValue
             }, initialValue)
         })
-
 
         return devicesHistorySumByStep
     }

@@ -34,8 +34,9 @@ class GuiElement {
 }
 
 export class TileIconTextGroup extends GuiElement {
-    constructor() {
+    constructor(instanceId) {
         super(null)
+        this.instanceId = instanceId
         this.width = 0
         this.height = 0
         this.element = null
@@ -54,13 +55,14 @@ export class TileIconTextGroup extends GuiElement {
     draw() {
         const iconWidth = 10
         const g = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "g"))
-            .attr("id", this.id)
+            .attr("id", "tile-" + this.instanceId)
             .attr("transform", d => `translate(${this.x}, ${this.y})`)
 
         this.element = g
 
         const rect = g
             .append("rect")
+            .classed("invisible", false)
             .attr("width", this.width)
             .attr("height", this.height)
             .attr("rx", 3)
@@ -69,6 +71,7 @@ export class TileIconTextGroup extends GuiElement {
         g
             .append("path")
             .attr("transform", d => `translate(${(this.width / 2) - (this.textHead.length / 2 * 7 + 20)}, 3) scale(0.9)`)
+            .attr("id", "tile-" + this.instanceId)
             .classed("stroke-white fill-none stroke-[1.5px]", true)
             .attr("d", this.iconPath)
 
@@ -77,6 +80,7 @@ export class TileIconTextGroup extends GuiElement {
 
         text
             .append("tspan")
+            .attr("id", "tile-" + this.instanceId)
             .attr("x", this.width / 2 + iconWidth)
             .attr("y", 20)
             .classed(`tile-text-head ${this.cssHead}`, true)
@@ -85,6 +89,7 @@ export class TileIconTextGroup extends GuiElement {
 
         text
             .append("tspan")
+            .attr("id", "tile-" + this.instanceId)
             .attr("x", this.width / 2)
             .attr("dy", "1.2em")
             .classed(`tile-text-value ${this.cssValue}`, true)
@@ -92,6 +97,7 @@ export class TileIconTextGroup extends GuiElement {
             .text(this.textValue.toFixed(0))
 
         text
+            .attr("id", "tile-" + this.instanceId)
             .append("tspan")
             .classed(`tile-text-unit ${this.cssUnit}`, true)
             .text(d => ` ${this.textUnit}`)
@@ -324,10 +330,11 @@ export class Time extends GuiElement {
 }
 
 export class SideBarSmall extends GuiElement {
-    constructor(guiRef, nodeManager, scenario) {
+    constructor(guiRef, nodeManager, tuioListener, scenario) {
         super(guiRef)
         this.nodeManager = nodeManager
         this._scenario = scenario
+        this.tuioListener = tuioListener
     }
 
     draw() {
@@ -454,7 +461,8 @@ export class SideBarSmall extends GuiElement {
             .style("cursor", "pointer")
             .on("click", (d) => {
                 this.nodeManager.initiateSimulation()
-                this._scenario.loadSimulation()
+                this._scenario.initiateSimulation()
+                this.tuioListener.initiateSimulation(globalThis)
             })
 
         footerButton
