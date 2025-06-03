@@ -208,13 +208,13 @@ export class TrafoD3 extends EnergyDevice {
         return pixel*factor
       }
 
-      d3.select(ref)
+      /* d3.select(ref)
           .append("svg:image")
               .attr('width', scale(length, 0.3))
               .attr('height', scale(height, 0.3))
               .attr('x', -scale(length, 0.6))
               .attr('y', 0)
               .style("text-anchor", "left")
-              .attr("xlink:href", "./images/efen_small.jpg")
+              .attr("xlink:href", "./images/efen_small.jpg") */
   }
 }

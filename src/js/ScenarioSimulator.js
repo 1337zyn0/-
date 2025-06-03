@@ -1,5 +1,5 @@
 import { EnergyDevice } from "./EnergyDevices.js"
-import {NodeType} from "./NodeType.js"
+import { NodeType } from "./NodeType.js"
 
 export const ScenarioState = {
     notrafos: 1,
@@ -20,7 +20,7 @@ export class ScenarioSimulator {
      * @param {Array} gridConnectionPointPower Array, representing the amount of power, that is imported or exported from the grid
      * @param {number} step Current scenario step
      */
-    
+
     constructor() {
         this.latestElectricityLinks = []
         this._isDebugOn = true
@@ -29,6 +29,7 @@ export class ScenarioSimulator {
         this._gridConnectionPointPower = []
         // this._currentScheduler = "enum"
         this._energyDeviceList = {}
+        this._simulationData
         this._scenarioStepAmount = 96;
         this._step = 0;
 
@@ -39,6 +40,9 @@ export class ScenarioSimulator {
         this.scenarioD3ElectricityFromGrid = 0
         this.scenarioD3SelfConsumptionRate = 0
         this.scenarioD3TotalCo2 = 0
+        this.inSimulation = false
+        this.simulationSteps = 0
+        this._activeNodes
     }
 
 
@@ -51,19 +55,19 @@ export class ScenarioSimulator {
         console.log(`isTrafoD3Active: ${isTrafoD3Active}`)
         console.log(`isEmsActive: ${isEmsActive}`)
 
-        if(!isTrafoClassicActive && !isTrafoD3Active) {
+        if (!isTrafoClassicActive && !isTrafoD3Active) {
             console.log("notrafos")
             return ScenarioState.notrafos
 
-        } else if(isTrafoClassicActive && !isTrafoD3Active) {
+        } else if (isTrafoClassicActive && !isTrafoD3Active) {
             console.log("classic")
             return ScenarioState.classic
 
-        } else if(isTrafoD3Active && !isEmsActive) {
+        } else if (isTrafoD3Active && !isEmsActive) {
             console.log("d3")
             return ScenarioState.d3
 
-        } else if(isTrafoD3Active && isEmsActive) {
+        } else if (isTrafoD3Active && isEmsActive) {
             console.log("d3ems")
             return ScenarioState.d3Ems
         }
@@ -76,7 +80,7 @@ export class ScenarioSimulator {
      * @returns 
      */
     #debug(string) {
-        if(!this._isDebugOn) return false
+        if (!this._isDebugOn) return false
         console.log(`| ${this.constructor.name} | ${string}`)
     }
 
@@ -104,6 +108,15 @@ export class ScenarioSimulator {
         return this._scenarioStepAmount
     }
 
+    set simulationData(d) {
+        this._simulationData = d
+        console.log(this._simulationData)
+    }
+
+    set activeNodes(nodes) {
+        this._activeNodes = nodes
+    }
+
     // get annualElectricityCosts() {
     //     return this._annualElectricityCosts
     // }
@@ -120,9 +133,9 @@ export class ScenarioSimulator {
      * @param {number} step
      */
     set step(step) {
-        if(step < 0) {
+        if (step < 0) {
             this._step = 0
-        } else if(step > this._scenarioStepAmount) {
+        } else if (step > this._scenarioStepAmount) {
             this._step = this._scenarioStepAmount
         } else {
             this._step = step
@@ -139,8 +152,8 @@ export class ScenarioSimulator {
      * @param {step} Desired step
      */
     static getTimeByStep(step) {
-        let hours = Math.floor((15*step)/60)
-        let minutes = (15*step) % 60
+        let hours = Math.floor((15 * step) / 60)
+        let minutes = (15 * step) % 60
         hours = String(hours).padStart(2, '0')
         minutes = String(minutes).padStart(2, '0')
         return `${hours}:${minutes}`
@@ -149,19 +162,65 @@ export class ScenarioSimulator {
     getCurrentTime() {
         return ScenarioSimulator.getTimeByStep(this._step)
     }
-    
+
+    initiateSimulation() {
+        this.inSimulation = true
+        this._scenarioStepAmount = Object.keys(this._simulationData).length
+        console.log(Object.keys(this._simulationData).length)
+        this._step = 0
+    }
+
+    getCurrentCommunicationLinks() {
+        if (this._step == 0) {
+            var links = []
+            for (let a = 0; a < this._activeNodes.length; a++) {
+                for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
+                    let device = this._activeNodes[a]
+                    links.push({
+                        "id": `${device.agentID}-${device.neighbours[b]}`,
+                        "source": device.agentID,
+                        "sourceRef": device,
+                        "target": device.neighbours[b],
+                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b])
+                    })
+                }
+            }
+            return links
+        } else {
+            var links = []
+
+            let currentNegotiation = Object.values(this._simulationData)[this.step-1]
+            console.log(this.step-1)
+            console.log(Object.values(this._simulationData)[this.step-1])
+            console.log(currentNegotiation.sender)
+            let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
+            console.log(this._activeNodes)
+            for (let a = 0; a < device.neighbours.length; a++) {
+                links.push({
+                    "id": `${device.agentID}-${device.neighbours[a]}`,
+                    "source": device.agentID,
+                    "sourceRef": device,
+                    "target": device.neighbours[a],
+                    "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a])
+                })
+            }
+            return links
+        }
+    }
+
     stepBack() {
-        if(this._step > 0) {
+        if (this._step > 0) {
             this._step--
             this.updateEnergyDevices()
         }
     }
 
     stepForward() {
-        if(this._step < this._scenarioStepAmount-1) {
+        if (this._step < this._scenarioStepAmount - 1) {
             this._step++
             this.updateEnergyDevices()
         }
+        console.log(this._energyDeviceList)
     }
 
     getActiveNodes() {
@@ -172,18 +231,18 @@ export class ScenarioSimulator {
 
     getActiveEnergyDevices() {
         return this.getActiveNodes()
-            .filter((node) => !node.isTypeOf(NodeType.trafo))
-            .filter((node) => node.isTypeOf(NodeType.energyDevice))
+            .filter((node) => !node.logic.isTypeOf(NodeType.trafo))
+            .filter((node) => node.logic.isTypeOf(NodeType.energyDevice))
     }
 
     getActiveEnergyDevicesConsumers() {
         return this.getActiveEnergyDevices()
-            .filter((node) => !node.isTypeOf(NodeType.producer))
+            .filter((node) => !node.logic.isTypeOf(NodeType.producer))
     }
 
     getActiveEnergyDevicesProducers() {
         return this.getActiveEnergyDevices()
-            .filter((node) => node.isTypeOf(NodeType.producer))
+            .filter((node) => node.logic.isTypeOf(NodeType.producer))
     }
 
     /**
@@ -191,24 +250,27 @@ export class ScenarioSimulator {
      * @param {string} id 
      * @param {EnergyDevice} device 
      */
+
     addEnergyDevice(id, device) {
-        if(this._energyDeviceList[id]) return
+        if (this._energyDeviceList[id]) return
 
         this._energyDeviceList[id] = device;
-        if(this._isDebugOn) this.#debug(`Added '${id}' to Scenario (${ Object.keys(this._energyDeviceList).length} devices in total)`)
+        if (this._isDebugOn) this.#debug(`Added '${id}' to Scenario (${Object.keys(this._energyDeviceList).length} devices in total)`)
         this.updateEnergyDevices()
     }
 
     removeEnergyDevice(id) {
-        if(!this._energyDeviceList[id]) return
+        if (!this._energyDeviceList[id]) return
 
         delete this._energyDeviceList[id]
-        if(this._isDebugOn) this.#debug(`After removing ${id} from Array. Amount energyDeviceList: ${ Object.keys(this._energyDeviceList).length }`)
+        if (this._isDebugOn) this.#debug(`After removing ${id} from Array. Amount energyDeviceList: ${Object.keys(this._energyDeviceList).length}`)
         this.updateEnergyDevices()
     }
 
     updateEnergyDevices() {
-        this.calculateLoadsByLatestLinks()
+        if (!this.inSimulation) {
+            this.calculateLoadsByLatestLinks()
+        }
     }
 
     calculateLoadsByLatestLinks() {
@@ -217,16 +279,16 @@ export class ScenarioSimulator {
         }))
 
         let trafos = activeNodes
-            .filter((node) => node.isTypeOf(NodeType.trafo))
+            .filter((node) => node.logic.isTypeOf(NodeType.trafo))
 
         // reset all now values in trafos
         trafos.forEach(trafo => trafo._now_value_in_w = 0)
 
         // set new now values and balance
         this.latestElectricityLinks.forEach(link => {
-            if(link.targetRef.logic.historyInW.length > 0) {
-                link.targetRef.logic._now_value_in_w = Math.round(link.targetRef.logic.historyInW[this._step] *100)/100
-            }            
+            if (link.targetRef.logic.historyInW.length > 0) {
+                link.targetRef.logic._now_value_in_w = Math.round(link.targetRef.logic.historyInW[this._step] * 100) / 100
+            }
             link.sourceRef.logic._now_value_in_w += link.targetRef.logic._now_value_in_w
         });
     }
@@ -237,20 +299,20 @@ export class ScenarioSimulator {
     }
 
     calculateScenarioD3() {
-        if(this.getActiveNodes().length == 0) return
+        if (this.getActiveNodes().length == 0) return
 
         this.scenarioD3TotalKwh = this.sumActiveEnergyDevicesConsumerKWh()
         this.scenarioD3TotalPvKwh = this.sumActivePvDevicesKwh()
         this.scenarioD3ElectricityFedOut = this.calculateElectricityFedOut(this.getActiveEnergyDevicesProducers(), this.getActiveEnergyDevicesConsumers())
         this.scenarioD3UsedPvEnergyKwh = this.scenarioD3TotalPvKwh - this.scenarioD3ElectricityFedOut
         this.scenarioD3ElectricityFromGrid = this.scenarioD3TotalKwh + this.scenarioD3UsedPvEnergyKwh
-        this.scenarioD3SelfConsumptionRate = this.scenarioD3TotalPvKwh ? 100/this.scenarioD3TotalPvKwh*this.scenarioD3UsedPvEnergyKwh : 0
-        this.scenarioD3TotalCo2 = (this.scenarioD3ElectricityFromGrid * this.co2emissionGramPerKwh)/1000
+        this.scenarioD3SelfConsumptionRate = this.scenarioD3TotalPvKwh ? 100 / this.scenarioD3TotalPvKwh * this.scenarioD3UsedPvEnergyKwh : 0
+        this.scenarioD3TotalCo2 = (this.scenarioD3ElectricityFromGrid * this.co2emissionGramPerKwh) / 1000
 
-        if(this._energyDeviceList['trafo_d3']) {
+        if (this._energyDeviceList['trafo_d3']) {
             this._energyDeviceList['trafo_d3'].historyInW = this.sumHistoryByStep(this.getActiveEnergyDevices(), 0, this._scenarioStepAmount)
         }
-        
+
         // console.log(`scenarioD3TotalKwh: ${this.scenarioD3TotalKwh}`)
         // console.log(`scenarioD3TotalPvKwh: ${this.scenarioD3TotalPvKwh}`)
         // console.log(`scenarioD3ElectricityFedOut: ${this.scenarioD3ElectricityFedOut}`)
@@ -260,7 +322,7 @@ export class ScenarioSimulator {
         // console.log(`scenarioD3TotalCo2: ${this.scenarioD3TotalCo2} kg today`)
         // console.log(`sumHistoryByStep: `); console.log(this.sumHistoryByStep(this.getActiveEnergyDevices()))
     }
-    
+
     calculateScenarioEMS() {
 
     }
@@ -274,7 +336,7 @@ export class ScenarioSimulator {
         // console.log(nodes)
 
         let reducedNodeHistories = nodes.map((node) => {
-            return node.getHistoryInWSlice(this.step).reduce((accumulator, node) => {
+            return node.logic.getHistoryInWSlice(this.step).reduce((accumulator, node) => {
                 return accumulator + node
             }, initialValue)
         })
@@ -289,7 +351,7 @@ export class ScenarioSimulator {
         // console.log("totalSumKw")
         // console.log(totalSumKw)
 
-        return totalSumKw/4/1000
+        return totalSumKw / 4 / 1000
 
         // add all kwh values of all active devices
     }
@@ -299,7 +361,7 @@ export class ScenarioSimulator {
     }
 
     sumActivePvDevicesKwh() {
-        if(this._energyDeviceList['pv_system']) {
+        if (this._energyDeviceList['pv_system']) {
             return this.sumNodesKwh([this._energyDeviceList['pv_system']])
         } else {
             return 0
@@ -322,7 +384,6 @@ export class ScenarioSimulator {
             }, initialValue)
         })
 
-
         return devicesHistorySumByStep
     }
 
@@ -334,11 +395,11 @@ export class ScenarioSimulator {
         // console.log(consumers)
 
         let consumersHistory = consumers.map((node) => {
-            return node.getHistoryInWSlice(this.step)
+            return node.logic.getHistoryInWSlice(this.step)
         })
 
         let producersHistory = producers.map((node) => {
-            return node.getHistoryInWSlice(this.step)
+            return node.logic.getHistoryInWSlice(this.step)
         })
 
         // console.log("consumersHistory")
@@ -366,16 +427,16 @@ export class ScenarioSimulator {
         // console.log(consumersHistorySumByStep)
 
         const elOut = transposedProducers.map((stepKw, index) => {
-            
+
             let consumerSum = (consumersHistorySumByStep.length > 1) ? Number(consumersHistorySumByStep[index]) : 0
             const dif = Number(stepKw) + consumerSum
             // console.log(`${Number(stepKw)} + ${consumerSum}`)
-            
-            if(dif < 0) {
+
+            if (dif < 0) {
                 return dif
             } else {
                 return 0
-            }            
+            }
         })
 
         // console.log("elOut")
@@ -383,13 +444,13 @@ export class ScenarioSimulator {
 
         return elOut.reduce((accumulator, currentValue) => {
             return accumulator + currentValue
-        }, 0)/4/1000
+        }, 0) / 4 / 1000
     }
 
     getD3Statistics() {
         // console.log("getD3Stats")
         this.calculateScenarioD3()
-        
+
         return [
             ["Verbrauch", this.round(this.scenarioD3TotalKwh), "kWh", globalThis.config.ui.icons.building_office_2],
             ["Erzeugung", this.round(this.scenarioD3TotalPvKwh), "kWh", globalThis.config.ui.icons.sun],
@@ -404,27 +465,26 @@ export class ScenarioSimulator {
     getEmsStatistics() {
         // console.log("getD3Stats")
         this.calculateScenarioD3()
-        
+
         return [
             // ["Verbrauch", this.round(this.scenarioD3TotalKwh), "kWh", globalThis.config.ui.icons.building_office_2],
             // ["Erzeugung", this.round(this.scenarioD3TotalPvKwh), "kWh", globalThis.config.ui.icons.sun],
-            ["Ausgespeist", this.round(this.scenarioD3ElectricityFedOut*0.9), "kWh", globalThis.config.ui.icons.arrow_up_on_square],
+            ["Ausgespeist", this.round(this.scenarioD3ElectricityFedOut * 0.9), "kWh", globalThis.config.ui.icons.arrow_up_on_square],
             // ["Eigenverbrauch", this.round(this.scenarioD3UsedPvEnergyKwh), "kWh", globalThis.config.ui.icons.bolt],
-            ["Netzbezug", this.round(this.scenarioD3ElectricityFromGrid*0.9), "kWh", globalThis.config.ui.icons.arrow_down_on_square],
-            ["Eigenverbrauch", this.round(this.scenarioD3SelfConsumptionRate*1.1), "%", globalThis.config.ui.icons.bolt],
-            ["CO₂ Emission", this.round(this.scenarioD3TotalCo2*0.9), "kg/Tag", globalThis.config.ui.icons.cloud],
+            ["Netzbezug", this.round(this.scenarioD3ElectricityFromGrid * 0.9), "kWh", globalThis.config.ui.icons.arrow_down_on_square],
+            ["Eigenverbrauch", this.round(this.scenarioD3SelfConsumptionRate * 1.1), "%", globalThis.config.ui.icons.bolt],
+            ["CO₂ Emission", this.round(this.scenarioD3TotalCo2 * 0.9), "kg/Tag", globalThis.config.ui.icons.cloud],
         ]
     }
 
     round(val) {
-        return Math.round(val*100)/100
+        return Math.round(val * 100) / 100
     }
 
     transpose(matrix) {
         // https://stackoverflow.com/a/46805290
 
-        if(matrix.length == 0) return []
+        if (matrix.length == 0) return []
         return matrix[0].map((col, i) => matrix.map(row => row[i]));
     }
-
 }
