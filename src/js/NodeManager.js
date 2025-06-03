@@ -62,7 +62,6 @@ export class NodeManager {
     }
 
     removeNode(node) {
-        console.log(this.instances.get(node.instanceId))
         if (this.instances.has(node.instanceId)) {
             node.isActive = false
             this.instances.delete(node.instanceId)
@@ -383,7 +382,6 @@ export class NodeManager {
 
 
         }
-        console.log(links)
         return links
     }
 
@@ -563,24 +561,22 @@ export class NodeManager {
                 exisitingPositions.set(activeInstanceID[j], [newPosition[0], newPosition[1]])
                 node.x = newPosition[0]
                 node.y = newPosition[1]
-                console.log(Array.from(exisitingPositions.entries()))
                 this.updateNode(node)
-                console.log(exisitingPositions)
             }
         }
     }
 
     getHighestGap(exisitingPositions) {
         let allDistances = new Map
-        let newPosition
         let array = Array.from(exisitingPositions)
+        let newPosition
+        let margin = 100
         for (let i = 0; i < array.length; i++) {
             for (let x = 0; x < array.length; x++) {
                 let a = array[i][1]
                 let b = array[x][1]
                 let distance = this.euclideanDistance([a[0], a[1]], [b[0], b[1]])
                 allDistances.set(distance, [a, b])
-                console.log(allDistances)
             }
         }
         let keys = [...allDistances.keys()].sort((a, b) => b - a)
@@ -589,17 +585,16 @@ export class NodeManager {
             let a = allDistances.get(keys[j])
             newPosition = [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5]
             if (this.checkPosition(exisitingPositions, newPosition)) {
-                console.log("No Collision")
                 return newPosition
             }
         }
         for (let x = 0; x < Array.from(allDistances.keys()).length; x++) {
-            let random = [Math.random() * globalThis.window.innerWidth, Math.random() * globalThis.window.innerHeight]
+            let random = [margin + Math.random() * (globalThis.window.innerWidth - 2 * margin), margin + Math.random() * (globalThis.window.innerHeight - 2 * margin)]
             if (this.checkPosition(exisitingPositions, random)) {
                 return random
             }
         }
-        return [Math.random() * globalThis.window.innerWidth, Math.random() * globalThis.window.innerHeight]
+        return [margin + Math.random() * (globalThis.window.innerWidth - 2 * margin), margin + Math.random() * (globalThis.window.innerHeight - 2 * margin)]
     }
 
     checkPosition(exisitingPositions, xy) {
@@ -607,7 +602,7 @@ export class NodeManager {
             if (value[0] === xy[0] && value[1] === xy[1]) {
                 return false
             }
-            if (this.euclideanDistance([value[0], value[1]], [xy[0], xy[1]]) < 350) {
+            if (this.euclideanDistance([value[0], value[1]], [xy[0], xy[1]]) < 300) {
                 return false
             }
             if (xy[0] > globalThis.window.innerWidth) {
@@ -617,7 +612,9 @@ export class NodeManager {
             }
             if (xy[1] > globalThis.window.innerHeight) {
                 if (xy[1] < 0) {
-                    return false
+                    if(xy[1] < 200){
+                        return false
+                    }
                 }
             }
         }

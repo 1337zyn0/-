@@ -110,7 +110,6 @@ export class ScenarioSimulator {
 
     set simulationData(d) {
         this._simulationData = d
-        console.log(this._simulationData)
     }
 
     set activeNodes(nodes) {
@@ -166,7 +165,6 @@ export class ScenarioSimulator {
     initiateSimulation() {
         this.inSimulation = true
         this._scenarioStepAmount = Object.keys(this._simulationData).length
-        console.log(Object.keys(this._simulationData).length)
         this._step = 0
     }
 
@@ -190,11 +188,7 @@ export class ScenarioSimulator {
             var links = []
 
             let currentNegotiation = Object.values(this._simulationData)[this.step-1]
-            console.log(this.step-1)
-            console.log(Object.values(this._simulationData)[this.step-1])
-            console.log(currentNegotiation.sender)
             let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
-            console.log(this._activeNodes)
             for (let a = 0; a < device.neighbours.length; a++) {
                 links.push({
                     "id": `${device.agentID}-${device.neighbours[a]}`,
@@ -220,7 +214,6 @@ export class ScenarioSimulator {
             this._step++
             this.updateEnergyDevices()
         }
-        console.log(this._energyDeviceList)
     }
 
     getActiveNodes() {
