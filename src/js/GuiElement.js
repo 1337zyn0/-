@@ -370,6 +370,7 @@ export class SideBarSmall extends GuiElement {
 
         this.parentSvgEntry
             .append("rect")
+            .attr("id", "parentSvgEntry")
             .attr('width', panelWidth)
             .attr('height', panelHeight)
             .attr('rx', '0')
@@ -440,6 +441,7 @@ export class SideBarSmall extends GuiElement {
         const footerText = panelFooter
             .append("text")
             .attr("transform", d => `translate(${padding}, ${padding})`)
+            .attr("id", "panelFooterText")
             // .attr('x', padding)
             .attr('y', -4)
             .style("text-anchor", "left")
@@ -481,11 +483,53 @@ export class SideBarSmall extends GuiElement {
             .attr("text-anchor", "middle")
             .text("Lade Simulationsdatei")
 
+        const hideButton = panelFooter
+            .append("g")
+            .attr("transform", d => `translate(${padding}, ${padding + textHeight + 10})`)
+            .attr("width", 55)
+            .attr("height", 50)
+            .attr("fill", "white")
+            .style("cursor", "pointer")
+            .on("click", (d) => {
+                if (!(parseInt(d3.select("#parentSvgEntry").attr("height")) === panelFooterHeight)) {
+                    d3.select("#panelHeader").classed("invisible", true)
+                    d3.select("#panelStatsClassic").classed("invisible", true)
+                    d3.select("#parentSvgEntry").attr("height", panelFooterHeight)
+                    d3.select("#parentSvgEntry").attr("y", panelHeight - panelFooterHeight / 2)
+                    d3.select("#panelFooterText").classed("invisible", true)
+                }else{
+                    d3.select("#panelHeader").classed("invisible", false)
+                    d3.select("#panelStatsClassic").classed("invisible", false)
+                    d3.select("#parentSvgEntry").attr("height", panelHeight)
+                    d3.select("#parentSvgEntry").attr("y", 0)
+                    d3.select("#panelFooterText").classed("invisible", false)
+                }
+
+            })
+
+        hideButton
+            .append("rect")
+            .attr("width", 150)
+            .attr("height", 30)
+            .attr("x", 224)
+            .attr("fill", "blue")
+            .style("cursor", "pointer")
+
+        hideButton
+            .append("text")
+            .attr("width", 55)
+            .attr("height", 50)
+            .attr("x", 300)
+            .attr("y", 18)
+            .attr("text-anchor", "middle")
+            .text("Pannel umschalten")
+
         function drawPanelHeader(ref) {
             const panelHeader = ref
                 .append("g")
                 .attr("id", "panelHeader")
                 .attr("transform", d => `translate(${padding}, ${padding})`)
+                .classed("pheader", true)
 
             panelHeader
                 .append("rect")
@@ -532,6 +576,7 @@ export class SideBarSmall extends GuiElement {
 
         d3.selectAll(".statistic-panel-text")
             .classed("fill-white text-base", true)
+
 
 
         function drawPanelContentClassic(ref) {

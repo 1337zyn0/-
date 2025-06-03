@@ -40,6 +40,9 @@ export class ScenarioSimulator {
         this.scenarioD3ElectricityFromGrid = 0
         this.scenarioD3SelfConsumptionRate = 0
         this.scenarioD3TotalCo2 = 0
+        this.inSimulation = false
+        this.simulationSteps = 0
+        this._activeNodes
     }
 
 
@@ -105,9 +108,13 @@ export class ScenarioSimulator {
         return this._scenarioStepAmount
     }
 
-    set simulationData(d){
+    set simulationData(d) {
         this._simulationData = d
         console.log(this._simulationData)
+    }
+
+    set activeNodes(nodes) {
+        this._activeNodes = nodes
     }
 
     // get annualElectricityCosts() {
@@ -156,8 +163,49 @@ export class ScenarioSimulator {
         return ScenarioSimulator.getTimeByStep(this._step)
     }
 
-    initiateSimulation(){
-        console.log("H")
+    initiateSimulation() {
+        this.inSimulation = true
+        this._scenarioStepAmount = Object.keys(this._simulationData).length
+        console.log(Object.keys(this._simulationData).length)
+        this._step = 0
+    }
+
+    getCurrentCommunicationLinks() {
+        if (this._step == 0) {
+            var links = []
+            for (let a = 0; a < this._activeNodes.length; a++) {
+                for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
+                    let device = this._activeNodes[a]
+                    links.push({
+                        "id": `${device.agentID}-${device.neighbours[b]}`,
+                        "source": device.agentID,
+                        "sourceRef": device,
+                        "target": device.neighbours[b],
+                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b])
+                    })
+                }
+            }
+            return links
+        } else {
+            var links = []
+
+            let currentNegotiation = Object.values(this._simulationData)[this.step-1]
+            console.log(this.step-1)
+            console.log(Object.values(this._simulationData)[this.step-1])
+            console.log(currentNegotiation.sender)
+            let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
+            console.log(this._activeNodes)
+            for (let a = 0; a < device.neighbours.length; a++) {
+                links.push({
+                    "id": `${device.agentID}-${device.neighbours[a]}`,
+                    "source": device.agentID,
+                    "sourceRef": device,
+                    "target": device.neighbours[a],
+                    "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a])
+                })
+            }
+            return links
+        }
     }
 
     stepBack() {
@@ -220,7 +268,9 @@ export class ScenarioSimulator {
     }
 
     updateEnergyDevices() {
-        this.calculateLoadsByLatestLinks()
+        if (!this.inSimulation) {
+            this.calculateLoadsByLatestLinks()
+        }
     }
 
     calculateLoadsByLatestLinks() {

@@ -6,10 +6,7 @@ export class NodeManager {
         this.nodes = new Map()
         this.instances = new Map()
         this.simulation
-    }
-
-    set simulationData(simulationData) {
-        this.simulation = simulationData
+        this.inSimulation = false
     }
 
     /**
@@ -386,7 +383,7 @@ export class NodeManager {
 
 
         }
-
+        console.log(links)
         return links
     }
 
@@ -437,19 +434,25 @@ export class NodeManager {
 
     initiateSimulation() {
         let agents = new Array()
-        let x = 400
-        let y = 600
+        let neighbours = new Map()
         let numberAdded = 0
         this.instances.clear()
         for (let i = 0; i < Object.keys(this.simulation).length; i++) {
-            //console.log(this.simulation[Object.keys(this.simulation)[i]].sender)
-            /* if(!agents.includes(this.simulation[Object.keys(this.simulation)[i]].sender)){
-                agents.push(this.simulation[Object.keys(this.simulation)[i]].sender)
-            } */
             for (let j = 0; j < Object.keys(this.simulation[Object.keys(this.simulation)[i]].receivers).length; j++) {
-                //console.log((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])
                 if (!agents.includes((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])) {
                     agents.push((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])
+                }
+            }
+        }
+
+        for (let i = 0; i < Object.keys(this.simulation).length; i++) {
+            if (!neighbours.has(this.simulation[Object.keys(this.simulation)[i]].sender)) {
+                neighbours.set(this.simulation[Object.keys(this.simulation)[i]].sender, this.simulation[Object.keys(this.simulation)[i]].receivers)
+            } else {
+                for (let z = 0; z < neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).length; z++) {
+                    if (!neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).includes(this.simulation[Object.keys(this.simulation)[i]].receivers[z])) {
+                        neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).push(this.simulation[Object.keys(this.simulation)[i]].receivers[z])
+                    }
                 }
             }
         }
@@ -461,21 +464,163 @@ export class NodeManager {
         for (let i = 0; i < agents.length; i++) {
             for (let j of this.instances.values()) {
                 if (j.agentID == agents[i]) {
-                    j.x = x
-                    j.y = y
-                    j.agentView = "Dies ist ein Beispieltext für die AgentView"
+                    j.x = 0
+                    j.y = 0
+                    j.name = agents[i] + ": Agententyp"
+                    j.agentView = "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt"
                     j.page = 0
+                    j.neighbours = neighbours.get(j.agentID)
                     numberAdded++
-                    if (numberAdded === 5) {
-                        x = 1100
-                        y = 300
-                    }
-                    x = x + 400
-                    y = y + 200
                     this.updateNode(j)
                 }
             }
         }
-        console.log(this.instances)
+        for (let i = 0; i < Object.keys(this.simulation).length; i++) {
+            for (let j of this.instances.values()) {
+                if (this.simulation[Object.keys(this.simulation)[i]].sender === j.agentID) {
+                    //console.log(this.simulation[Object.keys(this.simulation)[i]])
+                    if (j.agentView === "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt") {
+                        j.agentView = this.simulation[Object.keys(this.simulation)[i]].solution_candidate
+                        this.updateNode(j)
+                    }
+                }
+
+                if (Object.values(this.simulation)[i].sender === j.agentID && j.agentView === "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt") {
+                    j.agentView = Object.values(this.simulation)[i].solution_candidate
+                    //console.log(Object.values(this.simulation)[i].solution_candidate)
+                }
+            }
+        }
+        this.createNeighbours()
+        this.positionNodes()
+    }
+
+    createNeighbours() {
+        let nodes = Array.from(this.instances.values())
+        for (let i = 0; i < nodes.length; i++) {
+            let communicationLine = new Map()
+            //communicationLine.set(node.neighbours[i], [Array.from(this.instances.values().filter(agent => agent.agentID === node.neighbours[i]))[0].x, Array.from(this.instances.values().filter(agent => agent.agentID === node.neighbours[i]))[0].y])
+            let curr = nodes[i]
+            let neighbours = curr.neighbours
+            for (let j = 0; j < neighbours.length; j++) {
+                communicationLine.set(neighbours[j], [nodes.find(agent => agent.agentID === neighbours[j]).x, nodes.find(agent => agent.agentID === neighbours[j]).y])
+            }
+            curr.neighbourPosition = communicationLine
+            this.updateNode(curr)
+        }
+    }
+
+    createCommunicationLinks() {
+        let energyDevices = this.getPureActiveEnergyDevices()
+        var links = []
+        for (let a = 0; a < energyDevices.length; a++) {
+            for (let b = 0; b < energyDevices[a].neighbours.length; b++) {
+                let device = energyDevices[a]
+                links.push({
+                    "id": `${device.agentID}-${device.neighbours[b]}`,
+                    "source": device.agentID,
+                    "sourceRef": device,
+                    "target": device.neighbours[b],
+                    "targetRef": energyDevices.find(agent => agent.agentID === device.neighbours[b])
+                })
+            }
+        }
+        return links
+    }
+
+    positionNodes() {
+        let exisitingPositions = new Map
+        let activeInstanceID = Array.from(this.instances.keys())
+        let activeInstaceValue = Array.from(this.instances.values())
+        let instances = Array.from(this.instances)
+        for (let i = 0; i < 4; i++) {
+            let node = this.instances.get(activeInstanceID[i])
+            switch (i) {
+                case 0:
+                    node.x = 196
+                    node.y = 197
+                    break
+                case 1:
+                    node.x = 200
+                    node.y = globalThis.window.innerHeight - 195
+                    break
+                case 2:
+                    node.x = globalThis.window.innerWidth - 198
+                    node.y = 199
+                    break
+                case 3:
+                    node.x = globalThis.window.innerWidth - 201
+                    node.y = globalThis.window.innerHeight - 202
+                    break
+            }
+            exisitingPositions.set(activeInstanceID[i], [node.x, node.y])
+            this.updateNode(node)
+        }
+        for (let j = 4; j < instances.length; j++) {
+            if (activeInstaceValue[j].x === 0) {
+                let node = this.instances.get(activeInstanceID[j])
+                let newPosition = this.getHighestGap(exisitingPositions)
+                exisitingPositions.set(activeInstanceID[j], [newPosition[0], newPosition[1]])
+                node.x = newPosition[0]
+                node.y = newPosition[1]
+                console.log(Array.from(exisitingPositions.entries()))
+                this.updateNode(node)
+                console.log(exisitingPositions)
+            }
+        }
+    }
+
+    getHighestGap(exisitingPositions) {
+        let allDistances = new Map
+        let newPosition
+        let array = Array.from(exisitingPositions)
+        for (let i = 0; i < array.length; i++) {
+            for (let x = 0; x < array.length; x++) {
+                let a = array[i][1]
+                let b = array[x][1]
+                let distance = this.euclideanDistance([a[0], a[1]], [b[0], b[1]])
+                allDistances.set(distance, [a, b])
+                console.log(allDistances)
+            }
+        }
+        let keys = [...allDistances.keys()].sort((a, b) => b - a)
+
+        for (let j = 0; j < Array.from(allDistances.keys()).length; j++) {
+            let a = allDistances.get(keys[j])
+            newPosition = [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5]
+            if (this.checkPosition(exisitingPositions, newPosition)) {
+                console.log("No Collision")
+                return newPosition
+            }
+        }
+        for (let x = 0; x < Array.from(allDistances.keys()).length; x++) {
+            let random = [Math.random() * globalThis.window.innerWidth, Math.random() * globalThis.window.innerHeight]
+            if (this.checkPosition(exisitingPositions, random)) {
+                return random
+            }
+        }
+        return [Math.random() * globalThis.window.innerWidth, Math.random() * globalThis.window.innerHeight]
+    }
+
+    checkPosition(exisitingPositions, xy) {
+        for (let [key, value] of exisitingPositions.entries()) {
+            if (value[0] === xy[0] && value[1] === xy[1]) {
+                return false
+            }
+            if (this.euclideanDistance([value[0], value[1]], [xy[0], xy[1]]) < 350) {
+                return false
+            }
+            if (xy[0] > globalThis.window.innerWidth) {
+                if (xy[0] < 0) {
+                    return false
+                }
+            }
+            if (xy[1] > globalThis.window.innerHeight) {
+                if (xy[1] < 0) {
+                    return false
+                }
+            }
+        }
+        return true
     }
 }

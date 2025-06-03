@@ -1,6 +1,6 @@
 {
    "ui": {
-      "isDevAreaVisible": true,
+      "isDevAreaVisible": false,
       "classes": {
          "node_label_classic_rect": "stroke-black fill-[#5b5f61] opacity-95 drop-shadow-lg",
          "node_label_classic_text": "font-mono fill-white description text-xl font-bold",
@@ -96,8 +96,8 @@
          "name":"Photovoltaik Anlage",
          "description":"Eigene Photovoltaik-Anlagen auf dem Industrieareal.",
          "short_label":"PV",
-         "x":400,
-         "y":150,
+         "x":0,
+         "y":0,
          "color":"#194074",
          "tangible_id":15
       },
