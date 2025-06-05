@@ -74,6 +74,14 @@ export class NodeManager {
         }
     }
 
+    setPage(instanceId, page){
+        if(page <= 2 && page >= 0){
+            let node = this.instances.get(instanceId)
+            node.page = page
+            this.updateNode(node)
+        }
+    }
+
     getActiveNodes() {
         //return Array.from(this.nodes.values()).filter((node) => node.isActive)
         return Array.from(this.instances.values()).filter((node) => node.isActive)
@@ -547,7 +555,7 @@ export class NodeManager {
                     node.y = 199
                     break
                 case 3:
-                    node.x = globalThis.window.innerWidth - 201
+                    node.x = globalThis.window.innerWidth - 420 - 30 - 150
                     node.y = globalThis.window.innerHeight - 202
                     break
             }
@@ -609,6 +617,9 @@ export class NodeManager {
                 if (xy[0] < 0) {
                     return false
                 }
+            }
+            if(xy[0] > globalThis.window.innerWidth - 420 - 30 && xy[1] > globalThis.window.innerHeight - 720 - 30){
+                return false
             }
             if (xy[1] > globalThis.window.innerHeight) {
                 if (xy[1] < 0) {

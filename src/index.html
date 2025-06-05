@@ -329,6 +329,7 @@
     }
 
     function updateCommunicationLines() {
+      let currentNodes
       d3.selectAll("#communicationLines")
         .selectAll(".communicationLine")
         .data(scenario.getCurrentCommunicationLinks())
@@ -347,11 +348,20 @@
             .attr('y2', d => d.targetRef.y)
             .attr("marker-end", "url(#endArrow)"),
 
-          update => update
-            .attr('x1', d => d.sourceRef.x)
-            .attr('y1', d => d.sourceRef.y)
-            .attr('x2', d => d.targetRef.x)
-            .attr('y2', d => d.targetRef.y),
+          update => {
+
+            update
+              .attr('x1', d => d.sourceRef.x)
+              .attr('y1', d => d.sourceRef.y)
+              .attr('x2', d => d.targetRef.x)
+              .attr('y2', d => d.targetRef.y)
+            /* .each((d) => {
+              let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
+              let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
+              createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
+              createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
+            }) */
+          },
 
           exit => exit
             .remove()
@@ -725,6 +735,7 @@
 
           // apply on given data
           update => {
+
             update
               .attr("transform", d => `translate(${d.x}, ${d.y})`)
 
@@ -744,6 +755,7 @@
                 nodeManager.inSimulation = true
                 let activeNodes = nodeManager.getPureActiveEnergyDevices()
                 scenario.activeNodes = activeNodes
+                //d3.select("#mainSVG").attr("class", "bg-black")
               }
               if (d.page == 0) {
                 let x = wrapTextArray(d.agentID, (globalThis.window.innerWidth / 11) * 0.11 - 19)
@@ -833,6 +845,7 @@
 
     function createAgentView(window, instanceId, data, keys, contentRow) {
       d3.selectAll(".agentView-" + instanceId).remove()
+      nodeManager.setPage(instanceId, 2)
       let content = data
 
       let container = window
@@ -844,6 +857,7 @@
         .style("padding", "12px")
         .style("width", globalThis.window.innerWidth / 4.2)
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
 
 
       let svg = container
@@ -854,6 +868,7 @@
         .style("border", "1px solide white")
         .style("padding", "12px")
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
 
       svg
         .append("clipPath")
@@ -863,11 +878,13 @@
         .attr("width", globalThis.window.innerWidth / 4.2)
         .attr("height", globalThis.window.innerHeight / 4 + 130)
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
 
       let scrollGrp = svg
         .append("g")
         .attr("clip-path", "url(#clip-" + instanceId + ")")
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
 
       let svgContainer = scrollGrp
         .append("g")
@@ -875,6 +892,7 @@
         .attr("transform", "translate(0,0)")
         .attr("agentViewExpanded", false)
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
 
       let key = svgContainer
         .selectAll(".key-item")
@@ -887,6 +905,7 @@
           }
         })
         .classed("agentView-" + instanceId, true)
+        .classed("agentViewAll", true)
         .enter()
         .append("g")
         .attr("class", "key-item")
@@ -941,6 +960,7 @@
           .attr("line-height", "1.5rem")
           .classed("font-weight", 400)
           .classed("agentView-" + instanceId, true)
+          .classed("agentViewAll", true)
           .on("click", function () {
             if (contentRow !== null) {
               createAgentView(window, instanceId, data, true, null)
@@ -973,6 +993,7 @@
           .attr("agentViewExpanded", false)
           .classed("font-weight", 400)
           .classed("agentView-" + instanceId, true)
+          .classed("agentViewAll", true)
           .on("click", function () {
             if (contentRow !== null) {
               createAgentView(window, instanceId, data, true, null)
@@ -1334,6 +1355,7 @@
 
     // Create the SVG container.
     const svg = d3.create("svg")
+      .attr("id", "mainSVG")
       .attr("width", width)
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height])

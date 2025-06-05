@@ -169,7 +169,7 @@ export class ScenarioSimulator {
     }
 
     getCurrentCommunicationLinks() {
-        if (this._step == 0) {
+        if (this._step == 100000) {
             var links = []
             for (let a = 0; a < this._activeNodes.length; a++) {
                 for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
@@ -187,10 +187,11 @@ export class ScenarioSimulator {
         } else {
             var links = []
 
-            let currentNegotiation = Object.values(this._simulationData)[this.step-1]
+            let currentNegotiation = Object.values(this._simulationData)[this.step - 1]
             let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
             for (let a = 0; a < device.neighbours.length; a++) {
                 links.push({
+                    "negotiationID": currentNegotiation.negotiation_id,
                     "id": `${device.agentID}-${device.neighbours[a]}`,
                     "source": device.agentID,
                     "sourceRef": device,

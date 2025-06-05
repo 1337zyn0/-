@@ -365,7 +365,7 @@ export class SideBarSmall extends GuiElement {
 
         this.parentSvgEntry = this.guiRef
             .append("g")
-            .attr("id", "sideBar")
+            .attr("id", "sideBarSVG")
             .attr("transform", d => `translate(${this.x - panelWidth - 30}, ${this.y - panelHeight - 30}) scale(1)`)
 
         this.parentSvgEntry
@@ -465,6 +465,7 @@ export class SideBarSmall extends GuiElement {
                 this.nodeManager.initiateSimulation()
                 this._scenario.initiateSimulation()
                 this.tuioListener.initiateSimulation(globalThis)
+                this.changeToAgentInfoBar()
             })
 
         footerButton
@@ -492,13 +493,13 @@ export class SideBarSmall extends GuiElement {
             .style("cursor", "pointer")
             .on("click", (d) => {
                 if (!(parseInt(d3.select("#parentSvgEntry").attr("height")) === panelFooterHeight)) {
-                    d3.select("#panelHeader").classed("invisible", true)
+                    d3.select("#panelHeaderREF").classed("invisible", true)
                     d3.select("#panelStatsClassic").classed("invisible", true)
                     d3.select("#parentSvgEntry").attr("height", panelFooterHeight)
                     d3.select("#parentSvgEntry").attr("y", panelHeight - panelFooterHeight / 2)
                     d3.select("#panelFooterText").classed("invisible", true)
-                }else{
-                    d3.select("#panelHeader").classed("invisible", false)
+                } else {
+                    d3.select("#panelHeaderREF").classed("invisible", false)
                     d3.select("#panelStatsClassic").classed("invisible", false)
                     d3.select("#parentSvgEntry").attr("height", panelHeight)
                     d3.select("#parentSvgEntry").attr("y", 0)
@@ -527,12 +528,13 @@ export class SideBarSmall extends GuiElement {
         function drawPanelHeader(ref) {
             const panelHeader = ref
                 .append("g")
-                .attr("id", "panelHeader")
+                .attr("id", "panelHeaderREF")
                 .attr("transform", d => `translate(${padding}, ${padding})`)
                 .classed("pheader", true)
 
             panelHeader
                 .append("rect")
+                .attr("id", "panelHeader")
                 .attr("width", panelWidth - (4 * padding))
                 .attr("height", panelHeaderHeight)
                 .classed('stroke-0 stroke-white fill-[#252e42] opacity-0', true)
@@ -540,16 +542,18 @@ export class SideBarSmall extends GuiElement {
             const panelHeaderContent = panelHeader
                 .append("g")
                 .attr("transform", d => `translate(${padding}, ${padding})`)
+                .attr("id", "panelHeaderContent")
 
             panelHeaderContent
                 .append("svg:image")
+                .classed("headerRemove", true)
                 .attr('width', (panelWidth - (7 * padding)) / 2)
                 .attr("xlink:href", "./images/graeper-logo.svg")
 
             panelHeaderContent
                 .append("svg:image")
                 .attr('width', (panelWidth - (7 * padding)) / 2)
-                .attr('x', (panelWidth - (7 * padding)) / 2 + padding)
+                .attr('x', (panelWidth - (7 * padding)) / 2 + padding + 20)
                 .attr('y', 20)
                 .attr("xlink:href", "./images/offis-logo.svg")
                 .on("click", function () {
@@ -566,6 +570,7 @@ export class SideBarSmall extends GuiElement {
 
             panelHeaderContent
                 .append("text")
+                .attr("id", "textInfoBox")
                 .attr('y', 180)
                 .style("text-anchor", "middle")
                 .text("")
@@ -1037,5 +1042,60 @@ export class SideBarSmall extends GuiElement {
             .classed("stroke-yellow-400 stroke-2 fill-none stroke-dashed", true)
     }
 
+    changeToAgentInfoBar() {
+        d3.select("#panelStatsClassic").remove()
+        d3.select(".headerRemove").remove()
+        d3.select("#textInfoBox").remove()
+        d3.select("#sideBarSVG").attr("transform", d => `translate(${globalThis.window.innerWidth - 420 - 30}, ${globalThis.window.innerHeight - 720 - 30}) scale(1)`)
+        d3.select("#panelFooter").attr("transform", d => `translate(10, ${10 + 250 + 10 + 300 + 10})`)
+        d3.select("#panelFooterText").remove()
+        d3.select("#panelHeader").attr("height", 150)
+        console.log(globalThis.window.innerWidth - 420 - 30)
+        console.log(globalThis.window.innerHeight - 720 - 30)
+        let panelHeaderContent = d3.select("#panelHeaderContent")
+            .append("text")
+            .append("tspan")
+            .classed("text-lg fill-white", "true")
+            .attr("x", 0)
+            .attr("y", 20)
+            .attr("dy", "1.2em")
+            .attr('width', 220)
+            .text("Bachelorabschlussarbeit")
+
+        panelHeaderContent
+            .append("tspan")
+            .classed("text-lg fill-white", "true")
+            .attr("x", 0)
+            .attr("dy", "1.2em")
+            .attr('width', 220)
+            .text("von Jan Heine")
+
+        let agentStatistics = d3.select("#sideBar")
+            .append("g")
+            .attr("id", "agentStatistics")
+            .attr("transform", d => 'translate(10, 170)')
+
+        agentStatistics
+            .append("rect")
+            .attr("width", 420 - (4 * 10))
+            .attr("height", 300)
+            .classed('stroke-0 stroke-white fill-none opacity-100', true)
+
+        let agentPanelContent = agentStatistics
+            .append("g")
+            .attr("transform", 'translate(10, 10)')
+
+        agentPanelContent
+            .append("text")
+            .classed("text-lg font-bold fill-white", "true")
+            .attr("id", "panelStatsClassic")
+            .text("Übersicht der Zielfunktion")
+            .attr("x", (420 - (7 * 10)) / 2)
+            .attr("y", 10)
+            .style("text-anchor", "middle")
+
+        //TODO: draw AgentTargetFunction 
+
+    }
 }
 
