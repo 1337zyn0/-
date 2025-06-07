@@ -74,8 +74,8 @@ export class NodeManager {
         }
     }
 
-    setPage(instanceId, page){
-        if(page <= 2 && page >= 0){
+    setPage(instanceId, page) {
+        if (page <= 2 && page >= 0) {
             let node = this.instances.get(instanceId)
             node.page = page
             this.updateNode(node)
@@ -451,9 +451,19 @@ export class NodeManager {
             }
         }
 
+        agents.forEach(agent => {
+            this.addnewNode("pv_system", agent)
+        })
+
         for (let i = 0; i < Object.keys(this.simulation).length; i++) {
             if (!neighbours.has(this.simulation[Object.keys(this.simulation)[i]].sender)) {
-                neighbours.set(this.simulation[Object.keys(this.simulation)[i]].sender, this.simulation[Object.keys(this.simulation)[i]].receivers)
+                //neighbours.set(this.simulation[Object.keys(this.simulation)[i]].sender, this.simulation[Object.keys(this.simulation)[i]].receivers)
+                let instanceId = Array.from(this.instances.values()).filter(agent => agent.agentID === this.simulation[Object.keys(this.simulation)[i]].sender)[0]
+                let receiv = new Array
+                for (let l = 0; l < Array.from(this.simulation[Object.keys(this.simulation)[i]].receivers).length; l++) {
+                    receiv.push(Array.from(this.instances.values()).filter(agent => agent.agentID === this.simulation[Object.keys(this.simulation)[i]].receivers[l])[0])
+                }
+                neighbours.set(instanceId.instanceId, receiv)
             } else {
                 for (let z = 0; z < neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).length; z++) {
                     if (!neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).includes(this.simulation[Object.keys(this.simulation)[i]].receivers[z])) {
@@ -463,10 +473,6 @@ export class NodeManager {
             }
         }
 
-        agents.forEach(agent => {
-            this.addnewNode("pv_system", agent)
-        })
-
         for (let i = 0; i < agents.length; i++) {
             for (let j of this.instances.values()) {
                 if (j.agentID == agents[i]) {
@@ -475,7 +481,7 @@ export class NodeManager {
                     j.name = agents[i] + ": Agententyp"
                     j.agentView = "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt"
                     j.page = 0
-                    j.neighbours = neighbours.get(j.agentID)
+                    j.neighbours = neighbours.get(j.instanceId)
                     numberAdded++
                     this.updateNode(j)
                 }
@@ -497,23 +503,7 @@ export class NodeManager {
                 }
             }
         }
-        this.createNeighbours()
         this.positionNodes()
-    }
-
-    createNeighbours() {
-        let nodes = Array.from(this.instances.values())
-        for (let i = 0; i < nodes.length; i++) {
-            let communicationLine = new Map()
-            //communicationLine.set(node.neighbours[i], [Array.from(this.instances.values().filter(agent => agent.agentID === node.neighbours[i]))[0].x, Array.from(this.instances.values().filter(agent => agent.agentID === node.neighbours[i]))[0].y])
-            let curr = nodes[i]
-            let neighbours = curr.neighbours
-            for (let j = 0; j < neighbours.length; j++) {
-                communicationLine.set(neighbours[j], [nodes.find(agent => agent.agentID === neighbours[j]).x, nodes.find(agent => agent.agentID === neighbours[j]).y])
-            }
-            curr.neighbourPosition = communicationLine
-            this.updateNode(curr)
-        }
     }
 
     createCommunicationLinks() {
@@ -536,6 +526,7 @@ export class NodeManager {
 
     positionNodes() {
         let exisitingPositions = new Map
+        let alreadyPlacedNodes = new Map
         let activeInstanceID = Array.from(this.instances.keys())
         let activeInstaceValue = Array.from(this.instances.values())
         let instances = Array.from(this.instances)
@@ -559,25 +550,66 @@ export class NodeManager {
                     node.y = globalThis.window.innerHeight - 202
                     break
             }
+            alreadyPlacedNodes.set(activeInstanceID[i], [node.x, node.y])
             exisitingPositions.set(activeInstanceID[i], [node.x, node.y])
             this.updateNode(node)
         }
+
         for (let j = 4; j < instances.length; j++) {
             if (activeInstaceValue[j].x === 0) {
-                let node = this.instances.get(activeInstanceID[j])
                 let newPosition = this.getHighestGap(exisitingPositions)
-                exisitingPositions.set(activeInstanceID[j], [newPosition[0], newPosition[1]])
-                node.x = newPosition[0]
-                node.y = newPosition[1]
-                this.updateNode(node)
+                exisitingPositions.set(j, [newPosition[0], newPosition[1]])
             }
+        }
+
+        for(let m = 0; m < 4; m++){
+            exisitingPositions.delete(parseInt("15" + m))
+        }
+        console.log(activeInstanceID)
+        for (let k = 4; k < activeInstanceID.length; k++) {
+            let array = Array.from(exisitingPositions)
+            let arrayLenght = array.length
+            for (let y = 0; y < activeInstaceValue[k].neighbours.length; y++) {
+                if (alreadyPlacedNodes.has(activeInstaceValue[k].neighbours[y].instanceId)) {
+                    let alreadyPlacedNeighbour = alreadyPlacedNodes.get(activeInstaceValue[k].neighbours[y].instanceId)
+                    let allDistances = new Map
+                    for (let z = 0; z < arrayLenght; z++) {
+                        if (exisitingPositions.length !== 0) {
+                            //console.log(alreadyPlacedNeighbour)
+                            //console.log([Array.from(exisitingPositions.values())[z][0], Array.from(exisitingPositions.values())[z][1]])
+                            let distance = this.euclideanDistance([alreadyPlacedNeighbour[0], alreadyPlacedNeighbour[1]], [Array.from(exisitingPositions.values())[z][0], Array.from(exisitingPositions.values())[z][1]])
+                            allDistances.set(distance, [array[z][0], Array.from(exisitingPositions.values())[z]])
+                        }
+                    }
+                    let lowestDistance = Math.min(...Array.from(allDistances.keys()))
+                    alreadyPlacedNodes.set(activeInstanceID[k], allDistances.get(lowestDistance)[1])
+                    exisitingPositions.delete(allDistances.get(lowestDistance)[0])
+                    break
+                }
+            }
+        }
+
+        for(let f = 0; f < activeInstanceID.length; f++){
+            let instances = Array.from(this.instances.values())[f]
+            if(alreadyPlacedNodes.get(instances.instanceId) == undefined){
+                let newPosition = Array.from(exisitingPositions)[0][1]
+                alreadyPlacedNodes.set(instances.instanceId, [newPosition[0], newPosition[1]])
+                exisitingPositions.delete(Array.from(exisitingPositions)[0][0])
+            }
+        }
+
+        for(let g = 0; g < Array.from(alreadyPlacedNodes.keys()).length; g++){
+            let array = Array.from(alreadyPlacedNodes)
+            let node = this.instances.get(array[g][0])
+            node.x = array[g][1][0]
+            node.y = array[g][1][1]
+            this.updateNode(node)
         }
     }
 
     getHighestGap(exisitingPositions) {
         let allDistances = new Map
         let array = Array.from(exisitingPositions)
-        let newPosition
         let margin = 100
         for (let i = 0; i < array.length; i++) {
             for (let x = 0; x < array.length; x++) {
@@ -591,9 +623,8 @@ export class NodeManager {
 
         for (let j = 0; j < Array.from(allDistances.keys()).length; j++) {
             let a = allDistances.get(keys[j])
-            newPosition = [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5]
-            if (this.checkPosition(exisitingPositions, newPosition)) {
-                return newPosition
+            if (this.checkPosition(exisitingPositions, [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5])) {
+                return [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5]
             }
         }
         for (let x = 0; x < Array.from(allDistances.keys()).length; x++) {
@@ -618,12 +649,12 @@ export class NodeManager {
                     return false
                 }
             }
-            if(xy[0] > globalThis.window.innerWidth - 420 - 30 && xy[1] > globalThis.window.innerHeight - 720 - 30){
+            if (xy[0] > globalThis.window.innerWidth - 420 - 30 && xy[1] > globalThis.window.innerHeight - 720 - 30) {
                 return false
             }
             if (xy[1] > globalThis.window.innerHeight) {
                 if (xy[1] < 0) {
-                    if(xy[1] < 200){
+                    if (xy[1] < 200) {
                         return false
                     }
                 }

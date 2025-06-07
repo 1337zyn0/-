@@ -1050,8 +1050,6 @@ export class SideBarSmall extends GuiElement {
         d3.select("#panelFooter").attr("transform", d => `translate(10, ${10 + 250 + 10 + 300 + 10})`)
         d3.select("#panelFooterText").remove()
         d3.select("#panelHeader").attr("height", 150)
-        console.log(globalThis.window.innerWidth - 420 - 30)
-        console.log(globalThis.window.innerHeight - 720 - 30)
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
             .append("tspan")

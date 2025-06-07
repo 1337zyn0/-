@@ -169,7 +169,7 @@ export class ScenarioSimulator {
     }
 
     getCurrentCommunicationLinks() {
-        if (this._step == 100000) {
+        if (this._step == 0) {
             var links = []
             for (let a = 0; a < this._activeNodes.length; a++) {
                 for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
@@ -179,7 +179,7 @@ export class ScenarioSimulator {
                         "source": device.agentID,
                         "sourceRef": device,
                         "target": device.neighbours[b],
-                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b])
+                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b].agentID)
                     })
                 }
             }
@@ -187,7 +187,7 @@ export class ScenarioSimulator {
         } else {
             var links = []
 
-            let currentNegotiation = Object.values(this._simulationData)[this.step - 1]
+            let currentNegotiation = Object.values(this._simulationData)[this.step]
             let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
             for (let a = 0; a < device.neighbours.length; a++) {
                 links.push({
@@ -196,7 +196,7 @@ export class ScenarioSimulator {
                     "source": device.agentID,
                     "sourceRef": device,
                     "target": device.neighbours[a],
-                    "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a])
+                    "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID)
                 })
             }
             return links

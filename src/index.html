@@ -355,12 +355,12 @@
               .attr('y1', d => d.sourceRef.y)
               .attr('x2', d => d.targetRef.x)
               .attr('y2', d => d.targetRef.y)
-            /* .each((d) => {
-              let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
-              let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
-              createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
-              createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
-            }) */
+              /* .each((d) => {
+                let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
+                let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
+                createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
+                createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
+              }) */
           },
 
           exit => exit
@@ -735,7 +735,6 @@
 
           // apply on given data
           update => {
-
             update
               .attr("transform", d => `translate(${d.x}, ${d.y})`)
 
