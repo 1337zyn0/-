@@ -43,6 +43,7 @@ export class ScenarioSimulator {
         this.inSimulation = false
         this.simulationSteps = 0
         this._activeNodes
+        this.configuration = new Map
     }
 
 
@@ -162,58 +163,80 @@ export class ScenarioSimulator {
         return ScenarioSimulator.getTimeByStep(this._step)
     }
 
+    getCurrentStep() {
+        return this._step
+    }
+
+    getAllSteps() {
+        return this._scenarioStepAmount
+    }
+
     initiateSimulation() {
         this.inSimulation = true
         this._scenarioStepAmount = Object.keys(this._simulationData).length
-        this._step = 0
+        this._step = -1
     }
 
     getCurrentCommunicationLinks() {
-        if (this._step == 0) {
-            var links = []
-            for (let a = 0; a < this._activeNodes.length; a++) {
-                for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
-                    let device = this._activeNodes[a]
+        if (this.inSimulation) {
+            if (this._step == -1) {
+                var links = []
+                for (let a = 0; a < this._activeNodes.length; a++) {
+                    for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
+                        let device = this._activeNodes[a]
+                        links.push({
+                            "id": `${device.agentID}-${device.neighbours[b].agentID}`,
+                            "source": device.agentID,
+                            "sourceRef": device,
+                            "target": device.neighbours[b].agentID,
+                            "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b].agentID)
+                        })
+                    }
+                }
+                return links
+            } else {
+                var links = []
+
+                let currentNegotiation = Object.values(this._simulationData)[this.step]
+                let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
+                for (let a = 0; a < device.neighbours.length; a++) {
                     links.push({
-                        "id": `${device.agentID}-${device.neighbours[b]}`,
+                        "negotiationID": currentNegotiation.negotiation_id,
+                        "id": `${device.agentID}-${device.neighbours[a].agentID}`,
                         "source": device.agentID,
                         "sourceRef": device,
-                        "target": device.neighbours[b],
-                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b].agentID)
+                        "target": device.neighbours[a].agentID,
+                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID)
                     })
                 }
+                return links
             }
-            return links
-        } else {
-            var links = []
-
-            let currentNegotiation = Object.values(this._simulationData)[this.step]
-            let device = this._activeNodes.find(agent => agent.agentID === currentNegotiation.sender)
-            for (let a = 0; a < device.neighbours.length; a++) {
-                links.push({
-                    "negotiationID": currentNegotiation.negotiation_id,
-                    "id": `${device.agentID}-${device.neighbours[a]}`,
-                    "source": device.agentID,
-                    "sourceRef": device,
-                    "target": device.neighbours[a],
-                    "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID)
-                })
-            }
-            return links
         }
+    }
+
+    getCurrentConfiguration() {
+        return this.configuration
     }
 
     stepBack() {
         if (this._step > 0) {
             this._step--
-            this.updateEnergyDevices()
+            if (this.inSimulation) {
+                this.updateConfiguration()
+            } else {
+                this.updateEnergyDevices()
+            }
         }
     }
 
     stepForward() {
         if (this._step < this._scenarioStepAmount - 1) {
             this._step++
-            this.updateEnergyDevices()
+            if (this.inSimulation) {
+                this.updateConfiguration()
+            } else {
+                this.updateEnergyDevices()
+            }
         }
     }
 
@@ -267,6 +290,39 @@ export class ScenarioSimulator {
         }
     }
 
+    updateConfiguration() {
+        let currentSimulationStep = Object.values(this._simulationData)[this.step]
+        let senderNode = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.sender)
+        let receiverNodes = []
+        console.log(currentSimulationStep.receivers)
+        for (let i = 0; i < currentSimulationStep.receivers.length; i++) {
+            receiverNodes[i] = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.receivers[i])
+        }
+        console.log(Array.from(Object.entries(currentSimulationStep.solution_candidate)))
+        let array = Array.from(Object.entries(currentSimulationStep.solution_candidate))
+        console.log(senderNode.instanceId)
+        console.log(array)
+        this.configuration.set(senderNode.instanceId, array)
+        for (let j = 0; j < 4; j++) {
+            console.log(receiverNodes[j])
+            let instanceId = receiverNodes[j].instanceId
+            let currentConfig = this.configuration.get(instanceId)
+            console.log(instanceId)
+            if (currentConfig === undefined) {
+                this.configuration.set(instanceId, array.map(item => [...item]))
+            } else {
+                for (let x = 0; x < array.length; x++) {
+                    if (currentConfig.find(agent => agent[0] === array[x][0]) === undefined) {
+                        currentConfig.push(array[x])
+                    } else {
+                        currentConfig[x] = array[x]
+                    }
+                }
+            }
+        }
+        console.log(this.configuration)
+    }
+
     calculateLoadsByLatestLinks() {
         let activeNodes = Array.from(Object.entries(this._energyDeviceList).map(([key, device]) => {
             return device
@@ -318,7 +374,6 @@ export class ScenarioSimulator {
     }
 
     calculateScenarioEMS() {
-
     }
 
     sumNodesKwh(nodes) {

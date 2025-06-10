@@ -11,6 +11,7 @@ class GuiElement {
         this._x = 0
         this._y = 0
         this.parentSvgEntry = null
+        this.inSimulation = false
     }
 
     set x(value) {
@@ -260,72 +261,76 @@ export class Time extends GuiElement {
 
     draw(cbUpdate) {
         let that = this
-
-        const clock = this.guiRef
+        let controllPanel = this.guiRef
             .append("g")
-            .attr("id", "clock")
-            .attr("transform", d => `translate(${globalThis.innerWidth / 2}, ${globalThis.innerHeight})`)
+            .attr("id", "controllPanel")
+            .attr("transform", d => `translate(${globalThis.innerWidth / 2 - 200}, ${globalThis.innerHeight - 150})`)
 
-        clock
-            .append("ellipse")
-            .attr("cx", 0)
-            // .attr("cy", 200)
-            .attr("rx", 200)
-            .attr("ry", 80)
+        controllPanel
+            .append("rect")
+            .attr("x", 0)
+            .attr("width", 400)
+            .attr("height", 150)
             .classed('stroke-0 fill-[#252e42] opacity-95 drop-shadow-lg', true)
 
-        clock
+        controllPanel
             .append("text")
-            .attr("dx", 10)
-            .attr("dy", -40)
-            .classed('fill-white text-xl font-normal opacity-75', true)
-            .text(`Aktuelle Zeit`)
-            .style("text-anchor", "middle")
-
-        clock
-            .append("path")
-            .attr('y', -200)
-            .attr('x', -80)
-            .attr("transform", d => `translate(-75, -60) scale(1)`)
-            .classed("stroke-white fill-none stroke-[1.5px]", true)
-            .attr("d", globalThis.config.ui.icons['clock'])
-
-        clock
-            .append("text")
+            .attr("id", "conrollPanelTime")
             // .attr("dx", -30)
-            .attr("dy", -10)
+            .attr("transform", `translate(70, 50)`)
             .classed('time fill-white text-2xl font-bold', true)
             .text(`0 Uhr`)
             .style("text-anchor", "middle")
 
-        clock
-            .append("circle")
-            .attr("cx", "-110")
-            .attr("cy", "-20")
-            .attr("r", 40)
-            .classed("opacity-[0]", true)
-            .on("click", function (d, i) {
-                console.log("Clock: Step back");
+        controllPanel
+            .append("text")
+            .attr("id", "controllPanelStep")
+            .attr("transform", `translate(280, 50)`)
+            .classed('time fill-white text-2xl font-bold', true)
+            .text(``)
+            .style("text-anchor", "middle")
+
+
+        let svg = controllPanel
+            .append("svg")
+
+        let backArrow = svg
+            .append("g")
+            .attr("id", "backArrow")
+            .attr("transform", "translate(40,120)")
+            .style("cursor", "pointer")
+            .style("fill", "#3498db")
+            .style("transition", "fill 0.2s ease-in-out")
+            .on("click", function () {
                 that._scenario.stepBack()
                 cbUpdate()
             })
 
-        clock
-            .append("circle")
-            .attr("cx", "110")
-            .attr("cy", "-20")
-            .attr("r", 40)
-            .classed("opacity-[0]", true)
-            .on("click", function (d, i) {
-                console.log("Clock: Step forward");
+        backArrow.append("path")
+            .attr("d", "M -20 0 L 0 -15 L 0 15 Z")
+            .attr("transform", "scale(1.5)")
+
+        let forwardArrow = svg
+            .append("g")
+            .attr("id", "forwardArrow")
+            .attr("transform", "translate(80,120)")
+            .style("cursor", "pointer")
+            .style("fill", "#3498db")
+            .style("transition", "fill 0.2s ease-in-out")
+            .on("click", function () {
                 that._scenario.stepForward()
                 cbUpdate()
             })
+        forwardArrow.append("path")
+            .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
+            .attr("transform", "scale(1.5)")
     }
 
     update() {
-        d3.select(".time")
+        d3.select("#conrollPanelTime")
             .text(`${this._scenario.getCurrentTime()} Uhr`)
+        d3.select("#controllPanelStep")
+            .text(`${this._scenario.getCurrentStep()+1} von ${this._scenario.getAllSteps()+1} Schritten`)
     }
 }
 
@@ -466,6 +471,7 @@ export class SideBarSmall extends GuiElement {
                 this._scenario.initiateSimulation()
                 this.tuioListener.initiateSimulation(globalThis)
                 this.changeToAgentInfoBar()
+                this.inSimulation = true
             })
 
         footerButton

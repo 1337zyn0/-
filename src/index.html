@@ -57,6 +57,7 @@
     var scenario = new ScenarioSimulator()
     const nodeManager = new NodeManager()
     var inSimulation = false
+    let currentStep = -1
 
     const config = {
       energy_device_power: [],
@@ -355,12 +356,12 @@
               .attr('y1', d => d.sourceRef.y)
               .attr('x2', d => d.targetRef.x)
               .attr('y2', d => d.targetRef.y)
-              /* .each((d) => {
-                let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
-                let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
-                createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
-                createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
-              }) */
+            /* .each((d) => {
+              let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
+              let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
+              createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
+              createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
+            }) */
           },
 
           exit => exit
@@ -610,6 +611,7 @@
             let closeWindow = nodeLabel
               .append("circle")
               .attr("id", d => "closeWindow-" + d.instanceId)
+              .classed("closeWindow", true)
               .attr("r", function (d) {
                 return globalThis.window.innerWidth / 293
               })
@@ -630,6 +632,7 @@
             let closeWindowText = nodeLabel
               .append("text")
               .attr("id", d => "closeWindowText-" + d.instanceId)
+              .classed("closeWindowText", true)
               .attr("x", function (d) {
                 if ((globalThis.window.innerWidth / 12) < 190) {
                   return (190 - (globalThis.window.innerWidth / 172))
@@ -750,12 +753,19 @@
             update.select((d) => {
               if (d.agentID && !inSimulation) {
                 inSimulation = true
-                scenario.scenarioSteps = Object.keys(simulation).length
+                scenario.scenarioSteps = Object.keys(simulation).length + 1
                 nodeManager.inSimulation = true
                 let activeNodes = nodeManager.getPureActiveEnergyDevices()
                 scenario.activeNodes = activeNodes
                 //d3.select("#mainSVG").attr("class", "bg-black")
+                d3.selectAll(".closeWindow").remove()
+                d3.selectAll(".closeWindowText").remove()
               }
+
+            })
+
+            update.select((d) => {
+
               if (d.page == 0) {
                 let x = wrapTextArray(d.agentID, (globalThis.window.innerWidth / 11) * 0.11 - 19)
                 d3.select("#labelRect-" + d.instanceId)
@@ -792,13 +802,28 @@
                 }
               } else if (d.page == 2) {
                 d3.select("#text-" + d.instanceId).selectAll("tspan").remove()
-                if (d3.select("#container-" + d.instanceId)._groups[0][0] === null) {
+                /* if (d3.select("#container-" + d.instanceId)._groups[0][0] === null) {
                   if (d.agentID) {
-                    createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, d.agentView, true, null)
+                    d3.selectAll(".agentViewAll").remove()
                   }
-                }
+                } */
                 d3.select("#diagram-" + d.instanceId).classed("invisible", true)
                 d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
+              }
+            })
+
+            update.select((d) => {
+              if (currentStep !== scenario.step) {
+                d3.selectAll(".agentViewAll").remove()
+                nodeManager.setAllPagesToZero()
+                currentStep = scenario.step
+              }
+              let currentCommunication = scenario.getCurrentCommunicationLinks()
+              let currentConfiguration = scenario.getCurrentConfiguration()
+              if (currentConfiguration.get(d.instanceId)) {
+                if (currentCommunication.find(node => node.sourceRef.instanceId === d.instanceId) || currentCommunication.find(node => node.targetRef.instanceId === d.instanceId)) {
+                  createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
+                }
               }
             })
 
@@ -846,6 +871,7 @@
       d3.selectAll(".agentView-" + instanceId).remove()
       nodeManager.setPage(instanceId, 2)
       let content = data
+      console.log(data[0])
 
       let container = window
         .append("g")
