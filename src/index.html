@@ -19,6 +19,9 @@
     -->
   <script src="./node_modules/d3/dist/d3.js"></script>
 
+  <script src="https://unpkg.com/d3-simple-slider@1.7.4/dist/d3-simple-slider.min.js"></script>
+
+
   <!-- 
       OpenSoundControl is a data transport specification (an encoding) for realtime message communication among applications and hardware.
       It is used in the TUIO library.
@@ -48,7 +51,7 @@
     import { Tuio11Listener } from "./libs/tuio11/Tuio11Listener.js";
     import { WebsocketTuioReceiver } from "./libs/common/WebsocketTuioReceiver.js";
     import { Tuio11Object } from "./libs/tuio11/Tuio11Object.js";
-    // import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; // D3js Framwork
+    //import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm"; // D3js Framwork
     // import * as d3 from ("d3");
 
 
@@ -820,9 +823,11 @@
               }
               let currentCommunication = scenario.getCurrentCommunicationLinks()
               let currentConfiguration = scenario.getCurrentConfiguration()
-              if (currentConfiguration.get(d.instanceId)) {
-                if (currentCommunication.find(node => node.sourceRef.instanceId === d.instanceId) || currentCommunication.find(node => node.targetRef.instanceId === d.instanceId)) {
-                  createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
+              if (scenario.getCurrentStep() !== -1) {
+                if (currentConfiguration !== undefined && currentConfiguration.get(d.instanceId)) {
+                  if (currentCommunication.find(node => node.sourceRef.instanceId === d.instanceId) || currentCommunication.find(node => node.targetRef.instanceId === d.instanceId)) {
+                    createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
+                  }
                 }
               }
             })
@@ -871,7 +876,6 @@
       d3.selectAll(".agentView-" + instanceId).remove()
       nodeManager.setPage(instanceId, 2)
       let content = data
-      console.log(data[0])
 
       let container = window
         .append("g")

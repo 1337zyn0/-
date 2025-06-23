@@ -533,7 +533,6 @@ export class NodeManager {
     }
 
     positionNodes() {
-        console.log(this.instances)
         let exisitingPositions = new Map
         let alreadyPlacedNodes = new Map
         let activeInstanceID = Array.from(this.instances.keys())
@@ -596,9 +595,6 @@ export class NodeManager {
             node.y = array[g][1][1]
             this.updateNode(node)
         }
-
-        console.log(alreadyPlacedNodes)
-        console.log(exisitingPositions)
     }
 
     getHighestGap(exisitingPositions) {

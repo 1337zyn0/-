@@ -40,10 +40,13 @@ export class ScenarioSimulator {
         this.scenarioD3ElectricityFromGrid = 0
         this.scenarioD3SelfConsumptionRate = 0
         this.scenarioD3TotalCo2 = 0
+        this.targetValue = []
+        this.currentState = []
+        this.currentDiff = []
         this.inSimulation = false
         this.simulationSteps = 0
         this._activeNodes
-        this.configuration = new Map
+        this.allConfig = new Map
     }
 
 
@@ -171,6 +174,18 @@ export class ScenarioSimulator {
         return this._scenarioStepAmount
     }
 
+    goToStep(step) {
+        this._step = step
+    }
+
+    getTargetValueDiagramData(){
+        return this.targetValue
+    }
+
+    getCurrentSimulationState(){
+        return this.currentState[this._step]
+    }
+    
     initiateSimulation() {
         this.inSimulation = true
         this._scenarioStepAmount = Object.keys(this._simulationData).length
@@ -192,6 +207,10 @@ export class ScenarioSimulator {
                             "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b].agentID)
                         })
                     }
+                }
+                if (this.allConfig.size === 0) {
+                    this.generateConfiguration()
+                    this.generateAllAgentStatistics()
                 }
                 return links
             } else {
@@ -215,26 +234,26 @@ export class ScenarioSimulator {
     }
 
     getCurrentConfiguration() {
-        return this.configuration
+        return this.allConfig.get(this._step)
+    }
+
+    getCurrentDiff(){
+        return this.currentDiff[this._step]
     }
 
     stepBack() {
-        if (this._step > 0) {
+        if (this._step > -1) {
             this._step--
-            if (this.inSimulation) {
-                this.updateConfiguration()
-            } else {
+            if (!this.inSimulation) {
                 this.updateEnergyDevices()
             }
         }
     }
 
     stepForward() {
-        if (this._step < this._scenarioStepAmount - 1) {
+        if (this._step < this._scenarioStepAmount - 2) {
             this._step++
-            if (this.inSimulation) {
-                this.updateConfiguration()
-            } else {
+            if (!this.inSimulation) {
                 this.updateEnergyDevices()
             }
         }
@@ -290,37 +309,98 @@ export class ScenarioSimulator {
         }
     }
 
-    updateConfiguration() {
-        let currentSimulationStep = Object.values(this._simulationData)[this.step]
-        let senderNode = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.sender)
-        let receiverNodes = []
-        console.log(currentSimulationStep.receivers)
-        for (let i = 0; i < currentSimulationStep.receivers.length; i++) {
-            receiverNodes[i] = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.receivers[i])
-        }
-        console.log(Array.from(Object.entries(currentSimulationStep.solution_candidate)))
-        let array = Array.from(Object.entries(currentSimulationStep.solution_candidate))
-        console.log(senderNode.instanceId)
-        console.log(array)
-        this.configuration.set(senderNode.instanceId, array)
-        for (let j = 0; j < 4; j++) {
-            console.log(receiverNodes[j])
-            let instanceId = receiverNodes[j].instanceId
-            let currentConfig = this.configuration.get(instanceId)
-            console.log(instanceId)
-            if (currentConfig === undefined) {
-                this.configuration.set(instanceId, array.map(item => [...item]))
-            } else {
-                for (let x = 0; x < array.length; x++) {
-                    if (currentConfig.find(agent => agent[0] === array[x][0]) === undefined) {
-                        currentConfig.push(array[x])
-                    } else {
-                        currentConfig[x] = array[x]
+    generateConfiguration() {
+        let configuration = new Map
+        for (let z = 0; z < this._scenarioStepAmount - 1; z++) {
+            let currentSimulationStep = Object.values(this._simulationData)[z]
+            let senderNode = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.sender)
+            let receiverNodes = []
+            for (let i = 0; i < currentSimulationStep.receivers.length; i++) {
+                receiverNodes[i] = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.receivers[i])
+            }
+            let array = Array.from(Object.entries(currentSimulationStep.solution_candidate))
+            configuration.set(senderNode.instanceId, array)
+            for (let j = 0; j < 4; j++) {
+                let instanceId = receiverNodes[j].instanceId
+                let currentConfig = configuration.get(instanceId)
+                if (currentConfig === undefined) {
+                    configuration.set(instanceId, array.map(item => [...item]))
+                } else {
+                    for (let x = 0; x < array.length; x++) {
+                        if (currentConfig.find(agent => agent[0] === array[x][0]) === undefined) {
+                            currentConfig.push(array[x])
+                        } else {
+                            currentConfig[x] = array[x]
+                        }
                     }
                 }
             }
+            let saveConfig = new Map
+            for (const [instanceId, agentConfig] of configuration.entries()) {
+                let deepCopy = configuration.get(instanceId)
+                saveConfig.set(instanceId, deepCopy.map(item => [...item]))
+            }
+            this.allConfig.set(z, saveConfig)
         }
-        console.log(this.configuration)
+    }
+
+    generateAllAgentStatistics() {
+        let entries = Object.values(this._simulationData)
+        let nodeConfig = []
+
+        if (this.targetValue.length === 0) {
+            for (let i = 0; i < entries[0].target_parameters[0].length; i++) {
+                this.targetValue[i] = entries[0].target_parameters[0][i]
+            }
+        }
+        nodeConfig[0] = entries[0].solution_candidate
+
+        for (let j = 1; j < entries.length; j++) {
+            let previousStep = nodeConfig[j - 1]
+            let currentStep = entries[j].solution_candidate
+            for (let x = 0; x < Object.entries(previousStep).length; x++) {
+                if (currentStep[Object.keys(previousStep)[x]] === undefined) {
+                    currentStep[Object.keys(previousStep)[x]] = Object.values(previousStep)[x]
+                    
+                } //else {
+                    //console.log(Object.keys(previousStep)[x])
+                    //console.log(currentStep[Object.keys(previousStep)[x]])
+                    //console.log(this.arraysEqual(currentStep[Object.keys(previousStep)[x]], previousStep[Object.keys(previousStep)[x]]))
+                //}
+            }
+            nodeConfig[j] = currentStep
+        }
+
+        for (let u = 0; u < nodeConfig.length; u++) {//zeitschritte 0-24
+            let currentTime = nodeConfig[u]
+            let values = []
+            for (let r = 0; r < 24; r++) {
+                let sum = 0
+                for (let q = 0; q < Object.values(currentTime).length; q++) {
+                    //u = zeitschritt in der Simulation
+                    //r = zeitschritt jedes Agenten in 15 minuten auflösung
+                    //q = agent
+                    sum += Object.values(currentTime)[q][r]
+                }
+                values.push(sum)
+            }
+            this.currentState[u] = values
+        }
+
+        //TODO: erstellen der differenzwerte vom aktuellen simulationsstand zum targetvalue
+
+        for(let p = 0; p < this.currentState.length; p++){
+            let values = []
+            for(let t = 0; t < 24; t++){
+                let sum = 0
+                sum = this.targetValue[t] - this.currentState[p][t]
+                values.push(sum)
+            }
+            this.currentDiff[p] = values
+        }
+        console.log(nodeConfig)
+        console.log(this.currentState)
+        console.log(this.currentDiff)
     }
 
     calculateLoadsByLatestLinks() {
@@ -509,6 +589,10 @@ export class ScenarioSimulator {
             ["Eigenverbrauch", this.round(this.scenarioD3SelfConsumptionRate), "%", globalThis.config.ui.icons.bolt],
             ["CO₂ Emission", this.round(this.scenarioD3TotalCo2), "kg/Tag", globalThis.config.ui.icons.cloud],
         ]
+    }
+
+    getAgentStatistics() {
+
     }
 
     getEmsStatistics() {

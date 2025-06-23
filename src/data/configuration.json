@@ -33,8 +33,8 @@
       }
    },
    "scenario": {
-      "steps": 96,
-      "start_with_step": 45,
+      "steps": 50,
+      "start_with_step": 0,
       "co2emission_gram_per_kwh": 508,
       "industry_electricity_price_ct_per_kwh": 17.65
    },
