@@ -70,21 +70,32 @@
 
     globalThis.config = config
 
-    let simulation = {}
 
+    let allSims = new Map()
     // Functions
     function initiateApplicationStart() {
       let jsonConfig = new JsonReader("./data/configuration.json")
-      let jsonSimulation = new JsonReader("./data/messages2022-07-23 05_15_00Z.json")
-      jsonSimulation.readFile(loadSimulationData)
+      let jsonSimulation0 = new JsonReader("./data/0messages2022-07-23 05_15_00Z.json")
+      jsonSimulation0.readFile(loadSimulationData, 0)
+      let jsonSimulation1 = new JsonReader("./data/1messages2022-07-23 05_15_00Z.json")
+      jsonSimulation1.readFile(loadSimulationData, 1)
+      let jsonSimulation2 = new JsonReader("./data/2messages2022-07-23 05_15_00Z.json")
+      jsonSimulation2.readFile(loadSimulationData, 2)
+      //let jsonSimulation4 = new JsonReader("./data/4messages2022-07-23 05_15_00Z.json")
+      //jsonSimulation4.readFile(loadSimulationData)
       jsonConfig.readFile(applyConfig)
     }
 
-    function loadSimulationData(receivedDict) {
+    function loadSimulationData(receivedDict, num) {
       // Apply external simulation data to local data
-      Object.entries(receivedDict).map(([key, value]) => {
-        simulation[key] = value
-      })
+      let simulation = []
+      Object.entries(receivedDict)
+        .forEach(([key, value]) => {
+          simulation[key] = value
+        })
+      allSims.set(num, simulation)
+
+
     }
 
     function applyConfig(receivedDict) {
@@ -96,15 +107,16 @@
     }
 
     function start() {
+      console.log(allSims)
       const deviceCsv = new CsvReader(config.energy_device_power_csv)
       deviceCsv.loadCsvFile(parseFile);
 
       tuioClient = new Tuio11Client(new WebsocketTuioReceiver(config['websocket_url_tuio_api_box']))
       tuioClient.addTuioListener(tuioListener)
       tuioClient.connect()
-      nodeManager.simulation = simulation
-      tuioListener.simulation = simulation
-      scenario.simulationData = simulation
+      nodeManager.simulation = allSims
+      tuioListener.simulation = allSims
+      scenario.simulationData = allSims
       scenario.scenarioSteps = config.scenario.steps
       scenario.step = config.scenario.start_with_step
       scenario.co2emissionGramPerKwh = config.scenario.co2emission_gram_per_kwh
@@ -255,6 +267,7 @@
       tuioObject.instanceId = d.instanceId
       d.x = event.x
       d.y = event.y
+      d3.select("#scrollSVG-" + d.instanceId).attr("x", event.x).attr("y", event.y)
       nodeManager.updateNode(d)
       tuioListener.updateTuioObject(tuioObject)
     }
@@ -464,6 +477,11 @@
                         break
                       case 1:
                         d.page = 2
+                        let currentConfiguration = scenario.getCurrentConfiguration()
+                        console.log(currentConfiguration.get(d.instanceId))
+                        if (currentConfiguration !== undefined) {
+                          createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
+                        }
                         nodeManager.updateNode(d)
                         updateDiagram()
                         break
@@ -694,17 +712,6 @@
               .attr("dy", "0.5em")
 
 
-            /* labelText2.select(d => {
-              toMultilineText(labelText2, "Dies ist die AgentenView. Hier werden einige Optimierungsschritte verdeutlicht", labelRect.attr("width") * 0.11 - 19, "fill-white text-3xl text-base font-normal", 15)
-            })
-            labelText2
-              .insert("tspan", ":first-child")
-              .text(" ")
-              .attr("x", 0)
-              .attr("dy", "0.5em") */
-
-
-
             enter.selectAll(".tile-text-head")
               .classed("fill-gray-200 text-base font-normal", true)
 
@@ -756,7 +763,7 @@
             update.select((d) => {
               if (d.agentID && !inSimulation) {
                 inSimulation = true
-                scenario.scenarioSteps = Object.keys(simulation).length + 1
+                //scenario.scenarioSteps = Object.keys(simulation).length + 1
                 nodeManager.inSimulation = true
                 let activeNodes = nodeManager.getPureActiveEnergyDevices()
                 scenario.activeNodes = activeNodes
@@ -815,7 +822,7 @@
               }
             })
 
-            update.select((d) => {
+            update.select((d) => {              
               if (currentStep !== scenario.step) {
                 d3.selectAll(".agentViewAll").remove()
                 nodeManager.setAllPagesToZero()
@@ -874,7 +881,7 @@
 
     function createAgentView(window, instanceId, data, keys, contentRow) {
       d3.selectAll(".agentView-" + instanceId).remove()
-      nodeManager.setPage(instanceId, 2)
+      nodeManager.setPage(parseInt(instanceId), 2)
       let content = data
 
       let container = window
@@ -891,8 +898,9 @@
 
       let svg = container
         .append("svg")
+        .attr("id", "scrollSVG-" + instanceId)
         .attr("width", globalThis.window.innerWidth / 4.2)
-        .attr("height", globalThis.window.innerHeight / 4 + 130)
+        .attr("height", globalThis.window.innerHeight / 3.2)
         .style("max-height", globalThis.window.innerHeight / 4 + 130)
         .style("border", "1px solide white")
         .style("padding", "12px")
@@ -944,9 +952,9 @@
         })
 
       if (contentRow !== null) {
-        key
+        let text = key
           .append("text")
-          .text(d => "Die Sicht des obenstehenden Agenten zum aktuellen Zeitpunkt")
+          .text("")
           .attr("x", 10)
           .attr("y", 45)
           .attr("fill", "white")
@@ -956,6 +964,16 @@
           .on("click", function () {
             createAgentView(window, instanceId, data, true, null)
           })
+
+        text
+          .append("tspan")
+          .text("Die Sicht des obenstehenden")
+
+        text
+          .append("tspan")
+          .attr("dy", "1.2em")
+          .attr("x", 10)
+          .text("Agenten zum aktuellen Zeitpunkt")
       }
 
       key.each(function (d, i) {
@@ -973,7 +991,7 @@
                 return i * 30 + 40
               }
             }
-            return i * 30 + 40
+            return i * 30 + 65
           })
           .text(function () {
             if (contentRow == null) {
@@ -1008,13 +1026,13 @@
                 return i * 30 + 40
               }
             }
-            return i * 30 + 40
+            return i * 30 + 65
           })
           .text(function () {
             if (contentRow === null) {
               return "Status von Agent: " + d
             }
-            return "Zeitschritt: " + i + " Wert: " + d
+            return i + ": " + d
           })
           .attr("fill", "white")
           .attr("font-size", "1rem")

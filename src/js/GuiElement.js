@@ -1,5 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-import { toMultilineText } from "./helper.js"
+import { toMultilineText, wrapTextArray } from "./helper.js"
 import { ScenarioSimulator, ScenarioState } from "./ScenarioSimulator.js"
 import { Tuio11Object } from "../libs/tuio11/Tuio11Object.js";
 
@@ -271,7 +271,7 @@ export class Time extends GuiElement {
         }
 
         async function cycleSimulation() {
-            while (that.play && that._scenario.getCurrentStep() < that._scenario.getAllSteps() - 2) {
+            while (that.play && that._scenario.getCurrentStep() < that._scenario.getAllSteps() - 1) {
                 let speed
                 if (that.simSpeed < 4) {
                     speed = that.simSpeed * that.simSpeed
@@ -304,14 +304,26 @@ export class Time extends GuiElement {
             })
             .classed('stroke-0 fill-[#252e42] opacity-95 drop-shadow-lg', true)
 
-        controllPanel
+        let controllPanelText = controllPanel
             .append("text")
-            .attr("id", "conrollPanelTime")
             // .attr("dx", -30)
-            .attr("transform", `translate(70, 50)`)
+            .attr("id", "conrollPanelText")
+            .attr("transform", `translate(250, 0)`)
             .classed('time fill-white text-2xl font-bold', true)
-            .text(`0 Uhr`)
+            .text(``)
             .style("text-anchor", "middle")
+            .classed("invisible", true)
+
+        controllPanelText
+            .append("tspan")
+            .text("Die Simulation umfasst 6 Stunden")
+            .attr("dy", "1.2em")
+
+        controllPanelText
+            .append("tspan")
+            .text("in einer Auflösung von 15 Minuten")
+            .attr("dy", "1.2em")
+            .attr("x", 0)
 
         controllPanel
             .append("text")
@@ -559,18 +571,18 @@ export class Time extends GuiElement {
     }
 
     update() {
-
-        d3.select("#conrollPanelTime")
-            .text(`${this._scenario.getCurrentTime()} Uhr`)
+        if (this._scenario.inSimulation) {
+            d3.select("#conrollPanelText").classed("invisible", true)
+        }
         d3.select("#controllPanelStep")
-            .text(`${this._scenario.getCurrentStep()} von ${this._scenario.getAllSteps() - 2} Schritten`)
+            .text(`${this._scenario.getCurrentStep()} von ${this._scenario.getAllSteps() - 1} Schritten`)
 
         let maxSteps = this._scenario.getAllSteps()
         let currentStep = this._scenario.getCurrentStep
         let rect = d3.select("#controllPanelRect").attr("width")
         let svg = d3.select("#controllPanelSVG")
         this.x = d3.scaleLinear()
-            .domain([0, maxSteps - 2])
+            .domain([0, maxSteps - 1])
             .range([80, rect - 150])
             .clamp(true)
         if (maxSteps !== parseInt(d3.select("#sliderLine").attr("x2"))) {
@@ -656,7 +668,7 @@ export class SideBarSmall extends GuiElement {
         const innerPanel = this.parentSvgEntry
             .append("g")
             .attr("id", "sideBar")
-            .attr("transform", d => `translate(${padding + 20}, ${padding})`)
+            .attr("transform", d => `translate(${padding}, ${padding})`)
 
         drawPanelHeader(innerPanel)
 
@@ -751,15 +763,15 @@ export class SideBarSmall extends GuiElement {
             .attr("fill", "white")
             .style("cursor", "pointer")
             .on("click", async () => {
+                that.showScenarioInfomation()
                 let attack = await this.openAttackWindow()
                 if (attack > -1 && attack < 5) {
-                    that.nodeManager.initiateSimulation()
-                    that._scenario.initiateSimulation()
-                    that.tuioListener.initiateSimulation(globalThis)
+                    that.nodeManager.initiateSimulation(attack)
+                    that._scenario.initiateSimulation(attack)
+                    that.tuioListener.initiateSimulation(globalThis, attack)
                     that.changeToAgentInfoBar()
                     that.inSimulation = true
                 }
-                console.log(attack)
             })
 
         footerButton
@@ -823,7 +835,7 @@ export class SideBarSmall extends GuiElement {
             const panelHeader = ref
                 .append("g")
                 .attr("id", "panelHeaderREF")
-                .attr("transform", d => `translate(${padding-10}, ${padding})`)
+                .attr("transform", d => `translate(${padding - 10}, ${padding})`)
                 .classed("pheader", true)
 
             panelHeader
@@ -1424,13 +1436,6 @@ export class SideBarSmall extends GuiElement {
     }
 
     updateAgentDiagram() {
-        let that = this
-        console.log(this.currentDiagram)
-        let value = d3.select("#agentTargetDiagram")
-            .append("text")
-            .attr("id", "values")
-            .attr("fill", "black")
-            .style("visibility", "hidden")
 
         switch (this.currentDiagram) {
             case 0: {
@@ -1592,17 +1597,40 @@ export class SideBarSmall extends GuiElement {
 
                     let currentValue = this._scenario.getCurrentDiff()
                     let coordinate = []
-                    console.log(currentValue)
 
-                    this.aYScale = d3.scaleLinear()
-                        .range([400, 0])
-                        .domain([-2000, 4000])
+                    let min = Math.floor(Math.min(...currentValue) / 100) * 100
+                    let max = Math.floor(Math.max(...currentValue) / 100) * 100
+                    if (min < this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([min * 1.1, this.aYScale.domain()[1]])
+                    } else if (min - 1000 > this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([min * 1.1, this.aYScale.domain()[1]])
+                    }
+
+                    if (max > this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], max * 1.1])
+                    } else if (max + 1000 < this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], max * 1.1])
+                    }
+
+                    let scale = (Math.abs(this.aYScale.domain()[1]) + Math.abs(this.aYScale.domain()[0])) / 10
+                    console.log(scale / 8.8)
+
+
+
 
                     d3.select("#agentTargetDiagramY")
                         .call(d3.axisLeft(this.aYScale)
                             .ticks(10)
                             .tickFormat(d3.format("d"))
-                            .tickValues(d3.range(-2000, 4000, 400)))
+                            .tickValues(d3.range(this.aYScale.domain()[0], this.aYScale.domain()[1], scale)))
 
                     d3.select("#agentTargetDiagramY").selectAll(".tick text")
                         .attr("font-size", "20px")
@@ -1639,8 +1667,6 @@ export class SideBarSmall extends GuiElement {
                                 .attr("fill", "black")
                         },
                             update => {
-                                console.log(update)
-                                console.log(this._scenario.getCurrentDiff())
                                 let lineGenerator = d3.line()
                                     .x(d => this.aXScale(d[0]))
                                     .y(d => this.aYScale(d[1]))
@@ -1677,6 +1703,7 @@ export class SideBarSmall extends GuiElement {
 
     changeToAgentInfoBar() {
         let that = this
+        d3.select("#attackScenarioDesc").remove()
         d3.select("#infobox-ems").remove()
         d3.select("#infobox-d3").remove()
         //d3.select("#panelStatsClassic").remove()
@@ -1688,8 +1715,8 @@ export class SideBarSmall extends GuiElement {
         d3.select("#agentViewPanelContent").classed("invisible", false)
         d3.select("#infobox-agent").classed("invisible", false)
         d3.select(".agentStats").classed("invisible", false)
-        d3.select("#sideBarSVG").attr("transform", d => `translate(${globalThis.window.innerWidth - 420 - 30}, ${globalThis.window.innerHeight - 720 - 30}) scale(1)`)
-        d3.select("#panelFooter").attr("transform", d => `translate(10, ${10 + 250 + 10 + 300 + 10})`)
+        d3.select("#sideBarSVG").attr("transform", d => `translate(${globalThis.window.innerWidth - 420 - 30}, ${globalThis.window.innerHeight - 720 - 600}) scale(1)`)
+        d3.select("#panelFooter").attr("transform", d => `translate(10, ${10 + 250 + 10 + 300 + 10 + 600})`)
         d3.select("#panelHeader").attr("height", 150)
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
@@ -1724,14 +1751,34 @@ export class SideBarSmall extends GuiElement {
             .append("g")
             .attr("transform", 'translate(10, 10)')
 
-        agentPanelContent
+        let textForDiagram = agentPanelContent
             .append("text")
             .classed("text-lg font-bold fill-white", "true")
             .attr("id", "agentHeader")
-            .text("Übersicht der Zielfunktion")
+            .text("")
             .attr("x", (420 - (7 * 10)) / 2)
             .attr("y", 10)
             .style("text-anchor", "middle")
+
+        textForDiagram
+            .append("tspan")
+            .text("Differenzwert von Zielfunktion ")
+            .attr("dy", "1.2em")
+            .attr("x", 175)
+            .attr("y", -20)
+
+        textForDiagram
+            .append("tspan")
+            .text("und aktuellem Simulationswert")
+            .attr("dy", "1.2em")
+            .attr("x", 175)
+        //.attr("y", -20)
+
+        let currentAttackScenarioDescription = agentPanelContent
+            .append("text")
+            .classed("text-lg font-bold fill-white", "true")
+            .attr("id", "attackScenarioDescription")
+            .text("")
 
         let backToPrevDiagram = agentStatistics
             .append("g")
@@ -1774,6 +1821,34 @@ export class SideBarSmall extends GuiElement {
             .append("path")
             .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
             .attr("transform", `scale(1)`)
+    }
+
+    showScenarioInfomation() {
+        d3.select("#infobox-ems").remove()
+        d3.select("#infobox-d3").remove()
+        d3.selectAll(".panelContent").remove()
+        d3.select("#textInfoBox").remove()
+        console.log(typeof "Folgende Angriffsszenarien können gewählt werden")
+        let text0 = ["Folgende Angriffsszenarien können", "gewählt werden:"]
+        let text1 = ["1. Kein Angriffsszenario", "\u00A0","Kein Angriff, hier arbeitet die verteilte",  "Optimierung ohne eine manipulation",  "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
+        let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten , ", "Agenten manipuliert werden."]
+        let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem" , "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
+        let text4 = ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
+        let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3, "\u00A0", ...text4]
+        let attackScenarioDesc = d3.select("#panelStatsClassic")
+            .append("text")
+            .attr("id", "attackScenarioDesc")
+            .classed('time fill-white text-xl font-bold', true)
+
+        attackScenarioDesc
+            .selectAll("tspan")
+            .data(fullText)
+            .enter()
+            .append("tspan")
+            .text(d => { return d })
+            .classed('time fill-white text-xl font-bold', true)
+            .attr("dy", (d, i) => i === 0 ? "0em" : "1.2em")
+            .attr("x", 0)
     }
 
     async openAttackWindow() {

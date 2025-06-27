@@ -446,7 +446,10 @@ export class NodeManager {
         return energyNode
     }
 
-    initiateSimulation() {
+    initiateSimulation(attack) {
+        //console.log(this.simulation)
+        //console.log(this.simulation[index])
+        this.simulation = this.simulation.get(attack)
         let agents = new Array()
         let neighbours = new Map()
         let numberAdded = 0
@@ -486,7 +489,7 @@ export class NodeManager {
                 if (j.agentID == agents[i]) {
                     j.x = 0
                     j.y = 0
-                    j.name = agents[i] + ": Agententyp"
+                    j.name ="Agent " + agents[i].split(/(?<=\D)(?=\d)/)[1]
                     j.agentView = "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt"
                     j.page = 0
                     j.neighbours = neighbours.get(j.instanceId)

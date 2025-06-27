@@ -140,9 +140,10 @@ export class TuioListener extends Tuio11Listener {
         this._callback_on_update()
     }
 
-    initiateSimulation(globalThis){
+    initiateSimulation(globalThis, attack){
         this._existingObjects.clear()
         let agents = new Array()
+        this.simulation = this.simulation.get(attack)
         for (let i = 0; i < Object.keys(this.simulation).length; i++) {
             for (let j = 0; j < Object.keys(this.simulation[Object.keys(this.simulation)[i]].receivers).length; j++) {
                 if (!agents.includes((this.simulation[Object.keys(this.simulation)[i]].receivers)[j])) {

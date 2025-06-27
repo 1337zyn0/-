@@ -186,8 +186,9 @@ export class ScenarioSimulator {
         return this.currentState[this._step]
     }
     
-    initiateSimulation() {
+    initiateSimulation(attack) {
         this.inSimulation = true
+        this._simulationData = this._simulationData.get(attack)
         this._scenarioStepAmount = Object.keys(this._simulationData).length
         this._step = -1
     }
@@ -251,7 +252,7 @@ export class ScenarioSimulator {
     }
 
     stepForward() {
-        if (this._step < this._scenarioStepAmount - 2) {
+        if (this._step < this._scenarioStepAmount - 1) {
             this._step++
             if (!this.inSimulation) {
                 this.updateEnergyDevices()
@@ -311,7 +312,7 @@ export class ScenarioSimulator {
 
     generateConfiguration() {
         let configuration = new Map
-        for (let z = 0; z < this._scenarioStepAmount - 1; z++) {
+        for (let z = 0; z < this._scenarioStepAmount; z++) {
             let currentSimulationStep = Object.values(this._simulationData)[z]
             let senderNode = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.sender)
             let receiverNodes = []
@@ -398,9 +399,6 @@ export class ScenarioSimulator {
             }
             this.currentDiff[p] = values
         }
-        console.log(nodeConfig)
-        console.log(this.currentState)
-        console.log(this.currentDiff)
     }
 
     calculateLoadsByLatestLinks() {

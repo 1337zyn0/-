@@ -34,7 +34,7 @@ export class JsonReader {
     this._path = path
   }
 
-  readFile(cb) {
+  readFile(cb, num) {
     fetch(this._path)
       .then((res) => {
         if (!res.ok) {
@@ -45,7 +45,7 @@ export class JsonReader {
       })
       .then((data) => {
         // console.log(data)
-        cb(data)
+        cb(data, num)
       })
       .catch((error) =>
         console.error("Unable to fetch data:", error));
@@ -65,7 +65,7 @@ export function toMultilineText(ref, text, max_width, css_classes, xPadding = 0)
   // wrap the text based on how many characters per line
   const text_array = wrapTextArray(text, max_width);
   //console.log(text_array)
-  
+
   ref
     .selectAll("tspan")
     .data(text_array)
