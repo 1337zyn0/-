@@ -1834,7 +1834,7 @@ export class SideBarSmall extends GuiElement {
         let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten , ", "Agenten manipuliert werden."]
         let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem" , "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
         let text4 = ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
-        let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3, "\u00A0", ...text4]
+        let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3] //"\u00A0", ...text4]
         let attackScenarioDesc = d3.select("#panelStatsClassic")
             .append("text")
             .attr("id", "attackScenarioDesc")
