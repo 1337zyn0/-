@@ -81,8 +81,8 @@
       jsonSimulation1.readFile(loadSimulationData, 1)
       let jsonSimulation2 = new JsonReader("./data/2messages2022-07-23 05_15_00Z.json")
       jsonSimulation2.readFile(loadSimulationData, 2)
-      //let jsonSimulation4 = new JsonReader("./data/4messages2022-07-23 05_15_00Z.json")
-      //jsonSimulation4.readFile(loadSimulationData)
+      let jsonSimulation3 = new JsonReader("./data/3messages2022-07-23 05_15_00Z.json")
+      jsonSimulation3.readFile(loadSimulationData, 3)
       jsonConfig.readFile(applyConfig)
     }
 
@@ -361,8 +361,19 @@
             .attr("id", d => d.id)
             .attr('x1', d => d.sourceRef.x)
             .attr('y1', d => d.sourceRef.y)
-            .attr('x2', d => d.targetRef.x)
-            .attr('y2', d => d.targetRef.y)
+            //.attr('x2', d => d.targetRef.x)
+            .attr('x2', function (d) {
+              if (d.targetRef === undefined) {
+                return d.sourceRef.x
+              }
+              return d.targetRef.x
+            })
+            .attr('y2', function (d) {
+              if (d.targetRef === undefined) {
+                return d.sourceRef.y
+              }
+              return d.targetRef.y
+            })
             .attr("marker-end", "url(#endArrow)"),
 
           update => {
@@ -370,14 +381,18 @@
             update
               .attr('x1', d => d.sourceRef.x)
               .attr('y1', d => d.sourceRef.y)
-              .attr('x2', d => d.targetRef.x)
-              .attr('y2', d => d.targetRef.y)
-            /* .each((d) => {
-              let sourceRef = d3.select("#nodeLabel-" + d.sourceRef.instanceId)
-              let targetRef = d3.select("#nodeLabel-" + d.targetRef.instanceId)
-              createAgentView(sourceRef, d.sourceRef.instanceId, d.sourceRef.agentView, true, null)
-              createAgentView(targetRef, d.targetRef.instanceId, d.targetRef.agentView, true, null)
-            }) */
+              .attr('x2', function (d) {
+                if (d.targetRef === undefined) {
+                  return d.sourceRef.x
+                }
+                return d.targetRef.x
+              })
+              .attr('y2', function (d) {
+                if (d.targetRef === undefined) {
+                  return d.sourceRef.y
+                }
+                return d.targetRef.y
+              })
           },
 
           exit => exit
@@ -455,7 +470,7 @@
                 if (globalThis.window.innerWidth / 12 < 190) {
                   return 190 + globalThis.window.innerWidth / 293
                 }
-                return globalThis.window.innerWidth / 12
+                return globalThis.window.innerWidth / 10
               })
               .attr('height', function (d) {
                 return globalThis.window.innerHeight / 5
@@ -775,7 +790,7 @@
             })
 
             update.select((d) => {
-
+              d3.selectAll(".circleGroup").classed("invisible", true)
               if (d.page == 0) {
                 let x = wrapTextArray(d.agentID, (globalThis.window.innerWidth / 11) * 0.11 - 19)
                 d3.select("#labelRect-" + d.instanceId)
@@ -822,7 +837,7 @@
               }
             })
 
-            update.select((d) => {              
+            update.select((d) => {
               if (currentStep !== scenario.step) {
                 d3.selectAll(".agentViewAll").remove()
                 nodeManager.setAllPagesToZero()
@@ -836,6 +851,14 @@
                     createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
                   }
                 }
+              }
+              if (currentStep !== -1) {
+                let currentSender = currentCommunication[0].sourceRef
+                let receivers = []
+                let offset = { x: 0, y: 0 }
+                currentCommunication.forEach((message) => {
+                  receivers.push(message.target)
+                })
               }
             })
 
@@ -899,9 +922,9 @@
       let svg = container
         .append("svg")
         .attr("id", "scrollSVG-" + instanceId)
-        .attr("width", globalThis.window.innerWidth / 4.2)
-        .attr("height", globalThis.window.innerHeight / 3.2)
-        .style("max-height", globalThis.window.innerHeight / 4 + 130)
+        .attr("width", globalThis.window.innerWidth / 4)
+        .attr("height", globalThis.window.innerHeight / 10 + 130)
+        .style("max-height", globalThis.window.innerHeight / 10 + 130)
         .style("border", "1px solide white")
         .style("padding", "12px")
         .classed("agentView-" + instanceId, true)
@@ -1271,16 +1294,16 @@
               if (d.page === 0) {
                 return 40
               } else if (d.page === 2) {
-                return globalThis.window.innerHeight / 4 + 130
+                return globalThis.window.innerHeight / 10 + 130
               }
-              return globalThis.window.innerHeight / 6 + 120
+              return globalThis.window.innerHeight / 10 + 120
             } else {
               if (d.page === 0) {
                 return 40
               } else if (d.page === 2) {
-                return globalThis.window.innerHeight / 4 + 130
+                return globalThis.window.innerHeight / 10 + 130
               }
-              return globalThis.window.innerHeight / 6
+              return globalThis.window.innerHeight / 10
             }
             //return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
           })
@@ -1293,9 +1316,9 @@
           if (d.page === 0) {
             return 40 - 8
           } else if (d.page === 1 && !d.logic.isTypeOf(NodeType.TrafoD3)) {
-            return globalThis.window.innerHeight / 6 + 120 - 8
+            return globalThis.window.innerHeight / 10 + 120 - 8
           } else if (d.page === 2 && !d.logic.isTypeOf(NodeType.TrafoD3)) {
-            return globalThis.window.innerHeight / 4 + 130 - 8
+            return globalThis.window.innerHeight / 10 + 130 - 8
           }
         })
 
@@ -1319,7 +1342,7 @@
               if (d.page === 0) {
                 return 40
               } else if (d.page === 2) {
-                return globalThis.window.innerHeight / 4 + 130
+                return globalThis.window.innerHeight / 10 + 130
               }
               return 120
             }
@@ -1430,10 +1453,27 @@
     svg
       .append(function () { return tutorialPlaceDevices.element.node(); })
 
+
     // Add nodes group
     var nodeNetwork = svg
       .append("g")
       .attr("id", "nodeNetwork")
+
+    // Add circles
+    const node = nodeNetwork
+      .append("g")
+      .attr("id", "nodes")
+
+
+
+    var commLinks = svg
+      .append("g")
+      .attr("id", "communicationLines")
+
+    let letterInfo = svg
+      .append("g")
+      .attr("id", "letterInfo")
+      .attr("transform", `translate(150, 150)`)
 
     // Add lines first, in order to have the circles in the top
     var dataLinks = nodeNetwork
@@ -1443,10 +1483,6 @@
     var link = nodeNetwork
       .append("g")
       .attr("id", "electricitylines")
-
-    var commLinks = nodeNetwork
-      .append("g")
-      .attr("id", "communicationLines")
 
     commLinks
       .append("defs")
@@ -1461,11 +1497,6 @@
       .append("path")
       .attr("d", "M 0 0 L 10 5 L 0 10 z")
       .attr("fill", "red")
-
-    // Add circles
-    const node = nodeNetwork
-      .append("g")
-      .attr("id", "nodes")
 
     const time = new Time(svg, scenario)
 

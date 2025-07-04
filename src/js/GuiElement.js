@@ -645,7 +645,7 @@ export class SideBarSmall extends GuiElement {
             .domain([0, 100]); //kW     
 
         this.aXScale = d3.scaleLinear()
-            .range([0, 300])
+            .range([0, 500])
             .domain([-1, 25])
 
         this.aYScale = d3.scaleLinear()
@@ -729,8 +729,6 @@ export class SideBarSmall extends GuiElement {
 
         drawAgentStatsDiagram(agentView, 0, [0, 5000])
 
-        d3.select("#infobox-agent2").classed("invisible", true)
-
         const panelFooter = innerPanel
             .append("g")
             .attr("id", "panelFooter")
@@ -761,6 +759,7 @@ export class SideBarSmall extends GuiElement {
         const footerButton = panelFooter
             .append("g")
             .attr("transform", d => `translate(${padding}, ${padding + textHeight + 10})`)
+            .attr("id", "loadSim")
             .attr("width", 55)
             .attr("height", 50)
             .attr("fill", "white")
@@ -775,15 +774,8 @@ export class SideBarSmall extends GuiElement {
                     that.changeToAgentInfoBar()
                     that.inSimulation = true
                     that.attackScenario = attack
-                    d3.select("#attackScenarioDescription")
-                        .selectAll("tspan")
-                        .data(this.getCurrentAttackSceanrioText())
-                        .enter()
-                        .append("tspan")
-                        .text(d => { return d })
-                        .classed('time fill-white text-xl font-bold', true)
-                        .attr("dy", (d, i) => i === 0 ? "0em" : "1.2em")
-                        .attr("x", 0)
+                    toMultilineText(d3.select("#attackScenarioDescription"), this.getCurrentAttackSceanrioText(false), 10)
+                    d3.select("#loadSim").remove()
                 }
             })
 
@@ -817,12 +809,14 @@ export class SideBarSmall extends GuiElement {
                     d3.select("#parentSvgEntry").attr("height", panelFooterHeight)
                     d3.select("#parentSvgEntry").attr("y", panelHeight - panelFooterHeight / 2)
                     d3.select("#panelFooterText").classed("invisible", true)
+                    d3.select("#agentStatistics").classed("invisible", true)
                 } else {
                     d3.select("#panelHeaderREF").classed("invisible", false)
                     d3.select("#panelStatsClassic").classed("invisible", false)
                     d3.select("#parentSvgEntry").attr("height", panelHeight)
                     d3.select("#parentSvgEntry").attr("y", 0)
                     d3.select("#panelFooterText").classed("invisible", false)
+                    d3.select("#agentStatistics").classed("invisible", false)
                 }
 
             })
@@ -1185,7 +1179,7 @@ export class SideBarSmall extends GuiElement {
         function drawAgentContent(ref) {
 
             const agentStats = new InfoBox("infobox-agent")
-            agentStats.width = 300
+            agentStats.width = 500
             agentStats.height = panelD3Height - 130
             agentStats.x = 3 * padding + 20
             agentStats.y = -60
@@ -1197,10 +1191,10 @@ export class SideBarSmall extends GuiElement {
             agentStats.draw()
 
             const agentStats2 = new InfoBox("infobox-agent2")
-            agentStats2.width = 300
+            agentStats2.width = 500
             agentStats2.height = panelD3Height - 130
             agentStats2.x = 3 * padding + 20
-            agentStats2.y = -60 + 550
+            agentStats2.y = -60 + 475
             agentStats2.rectCss = "stroke-0 stroke-black fill-[#364d6f]"
             //agentStats.textHead = "Hinweis"
             agentStats2.textHeadCss = "fill-white text-xl font-bold"
@@ -1225,15 +1219,84 @@ export class SideBarSmall extends GuiElement {
             const dailyStats = ref
                 .append("g")
                 .attr("id", "panelAgentStatistics")
-                .classed("ems-dependant-view", true)
-                .classed("agentStats", true)
-                .attr("transform", d => `translate(${3 * padding}, 120)`)
+                .attr("transform", d => `translate(${3 * padding}, 50)`)
+                .classed("invisible", true)
 
-            if (!that.inSimulation) {
-                d3.select("#infobox-agent").classed("invisible", true)
-            } else {
-                d3.select("#infobox-agent").classed("invisible", false)
-            }
+            let commText = dailyStats
+                .append("text")
+                .attr("id", "communicationInformationText")
+
+            commText
+                .append("tspan")
+                .text("Informationen über den Nachrichtenaustausch des")
+                .attr("x", 10)
+                .attr("font-size", "20px")
+                .attr("fill", "white")
+
+            commText
+                .append("tspan")
+                .text("aktuellen Simulationsschritts von ")
+                .attr("x", 10)
+                .attr("dy", "1.2em")
+                .attr("font-size", "20px")
+                .attr("fill", "white")
+
+            commText
+                .append("tspan")
+                .attr("id", "tspanSender")
+                .text("")
+                .attr("font-size", "20px")
+                .attr("fill", "red")
+
+            commText
+                .append("tspan")
+                .text("zu den Agenten: ")
+                .attr("font-size", "20px")
+                .attr("x", 10)
+                .attr("dy", "1.2em")
+                .attr("fill", "white")
+
+            commText
+                .append("tspan")
+                .attr("id", "tspanReceivers")
+                .text("")
+                .attr("x", 10)
+                .attr("dy", "1.2em")
+                .attr("font-size", "20px")
+                .attr("fill", "red")
+
+            commText
+                .append("tspan")
+                .text("Verhandlungs-ID: ")
+                .attr("x", 10)
+                .attr("dy", "2em")
+                .attr("font-size", "20px")
+                .attr("fill", "white")
+            commText
+                .append("tspan")
+                .attr("id", "tspanNegoID")
+                .text("")
+                .attr("font-size", "20px")
+                .attr("fill", "red")
+            commText
+                .append("tspan")
+                .text("Performance dieser Verhandlung: ")
+                .attr("x", 10)
+                .attr("dy", "2em")
+                .attr("font-size", "20px")
+                .attr("fill", "white")
+            commText
+                .append("tspan")
+                .attr("id", "tspanPerformance")
+                .text("")
+                .attr("font-size", "20px")
+                .attr("fill", "red")
+
+            let infoText = dailyStats
+                .append("text")
+                .attr("id", "infoTextSecondPage")
+                .attr("transform", `translate(${3 * padding}, 550)`)
+
         }
 
         function drawAgentStatsDiagram(ref, domainX, domainY) {
@@ -1272,13 +1335,12 @@ export class SideBarSmall extends GuiElement {
             let agentDiagram2 = ref
                 .append("g")
                 .attr("id", "agentTargetDiagram2")
-                .classed("invisible", true)
 
             agentDiagram2
                 .append("g")
                 .attr("id", "agentTargetDiagramY2")
                 .classed("yAxis text-white stroke-1 border-1", true)
-                .attr("transform", "translate(50, 500)")
+                .attr("transform", "translate(50, 420)")
                 .call(d3.axisLeft(that.aYScale)
                     .ticks(10)
                     .tickFormat(d3.format("d"))
@@ -1288,13 +1350,7 @@ export class SideBarSmall extends GuiElement {
                 .append("g")
                 .attr("id", "agentTargetX2")
                 .classed("xAxis text-white stroke-1 border-1", true)
-                .attr("transform", `translate(50, ${900})`)
-                .call(
-                    d3.axisBottom(that.aXScale)
-                        .ticks(24)
-                        .tickFormat(d3.format("d"))
-                        .tickValues(d3.range(0, 25, 4))
-                )
+                .attr("transform", `translate(50, ${850})`)
 
             agentDiagram2.selectAll(".tick text")
                 .attr("font-size", "20px")
@@ -1302,10 +1358,106 @@ export class SideBarSmall extends GuiElement {
             let text2ndDiagram = ref
                 .append("text")
                 .attr("id", "secondDiagram")
-                .attr("transform", `translate(85, 450)`)
-                .classed("text-lg font-bold fill-white", "true")
+                .attr("transform", `translate(125, 400)`)
+                .attr("fill", "orange")
+                .classed("text-lg font-bold", "true")
+                .classed("invisible", false)
+                .text("Verlauf der Simulationsperformance")
+
+            let textInf = ref
+                .append("text")
+                .attr("id", "infiniteText")
+                .attr("transform", "translate(225, 750)")
+                .classed("infiniteValue", true)
                 .classed("invisible", true)
-                .text("Aktueller Simulationswert")
+                .classed("fill-white text-2xl font-bold", true)
+                .text("Der Wert befindet sich")
+
+            textInf
+                .append("tspan")
+                .text("außerhalb der Skalar:")
+                .attr("dy", "1.2em")
+                .attr("x", 0)
+
+            textInf
+                .append("tspan")
+                .attr("id", "infiniteValue")
+                .attr("transform", "translate(0, 0)")
+                .attr("fill", "red")
+                .attr("dy", "1.2em")
+                .attr("x", 0)
+                .classed("invisible", true)
+                .classed("infiniteValue", true)
+                .classed("text-2xl font-bold", true)
+                .text("")
+
+
+            let performanceLight = ref
+                .append("g")
+                .attr("id", "performanceIndicator")
+                .attr("transform", "translate(-20, 900)")
+                .classed("invisible", false)
+
+            let performanceLightText = performanceLight
+                .append("text")
+                .classed("fill-white text-2xl font-bold", true)
+
+            performanceLightText
+                .append("tspan")
+                .text("Bewertung der")
+
+            performanceLightText
+                .append("tspan")
+                .text("Performance: ")
+                .attr("dy", "1.2em")
+                .attr("x", 0)
+
+            performanceLight
+                .append("circle")
+                .attr("r", 25)
+                .attr("id", "performanceLightCircle1")
+                .attr("transform", "translate(235, 5)")
+                .attr("fill", "white")
+                .classed("performanceLightCircle", true)
+
+            performanceLight
+                .append("circle")
+                .attr("r", 25)
+                .attr("id", "performanceLightCircle2")
+                .attr("transform", "translate(315, 5)")
+                .attr("fill", "white")
+                .classed("performanceLightCircle", true)
+
+            performanceLight
+                .append("circle")
+                .attr("r", 25)
+                .attr("id", "performanceLightCircle3")
+                .attr("transform", "translate(395, 5)")
+                .attr("fill", "white")
+                .classed("performanceLightCircle", true)
+
+            performanceLight
+                .append("circle")
+                .attr("r", 25)
+                .attr("id", "performanceLightCircle4")
+                .attr("transform", "translate(475, 5)")
+                .attr("fill", "white")
+                .classed("performanceLightCircle", true)
+
+            performanceLight
+                .append("circle")
+                .attr("r", 25)
+                .attr("id", "performanceLightCircle5")
+                .attr("transform", "translate(555, 5)")
+                .attr("fill", "white")
+                .classed("performanceLightCircle", true)
+
+            let secondPageText = ref
+                .append("text")
+                .attr("id", "secondPageText")
+                .attr("transform", `translate(125, 450)`)
+                .classed("text-lg font-bold", "true")
+                .classed("invisible", true)
         }
     }
 
@@ -1501,29 +1653,36 @@ export class SideBarSmall extends GuiElement {
     }
 
     updateAgentDiagram() {
-
+        let container = d3.select("#agentTargetDiagram")
         switch (this.currentDiagram) {
             case 0: {
-                d3.select("#tspanDiagram1").text("Differenzwert von Zielfunktion ")
-                d3.select("#tspanDiagram12").text("und aktuellem Simulationswert")
-                d3.select("#attackScenarioDescription")
-                    .selectAll("tspan")
-                    .data(this.getCurrentAttackSceanrioText())
-                    .enter()
-                    .append("tspan")
-                    .text(d => { return d })
-                    .classed('time fill-white text-xl font-bold', true)
-                    .attr("dy", (d, i) => i === 0 ? "0em" : "1.2em")
-                    .attr("x", 0)
-                d3.select("#infobox-agent2").classed("invisible", true)
-                d3.select("#agentTargetDiagram2").classed("invisible", true)
-                d3.select("#secondDiagram").classed("invisible", true)
+                d3.select("#tspanDiagram1").text("Zielfunktion")
+                d3.select("#tspanDiagram12").text("Aktueller Simulationswert")
+                toMultilineText(d3.select("#attackScenarioDescription"), this.getCurrentAttackSceanrioText(), 10)
+                d3.select("#secondDiagram").text("Verlauf der Simulationsperformance")
+                d3.select("#tspanDiagram1").classed("invisible", false)
+                d3.select("#tspanDiagram12").classed("invisible", false)
+                d3.select("#infobox-agent").classed("invisible", false)
+                d3.select("#infobox-agent2").classed("invisible", false)
+                d3.select("#agentTargetDiagram").classed("invisible", false)
+                d3.select("#agentTargetDiagram2").classed("invisible", false)
+                d3.select("#secondDiagram").classed("invisible", false)
+                d3.select("#communicationInformationText").classed("invisible", true)
+                d3.select("#panelAgentStatistics").classed("invisible", true)
+                d3.select("#infobox-agent").attr("transform", "translate(50, -60)")
+                d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
+                d3.select("#performanceIndicator").classed("invisible", false)
 
-                let currentValue = this._scenario.getCurrentDiff()
-                let coordinate = []
 
-                let min = Math.floor((Math.min(...currentValue) / 100) * 0.9) * 100
-                let max = Math.floor((Math.max(...currentValue) / 100) * 1.1) * 100
+                let currentValue = this._scenario.getCurrentSimulationState()
+                let targetValue = this._scenario.getTargetValueDiagramData()
+
+                let minCurrent = Math.floor((Math.min(...currentValue) / 100)) * 100
+                let maxCurrent = Math.floor((Math.max(...currentValue) / 100) * 1.1) * 100
+                let minTarget = Math.floor((Math.min(...targetValue) / 100)) * 100
+                let maxTarget = Math.floor((Math.max(...targetValue) / 100) * 1.1) * 100
+                let min = Math.min(minCurrent, minTarget)
+                let max = Math.max(maxCurrent, maxTarget)
                 if (min < this.aYScale.domain()[0]) {
                     this.aYScale = d3.scaleLinear()
                         .range([400, 0])
@@ -1544,6 +1703,126 @@ export class SideBarSmall extends GuiElement {
                         .domain([this.aYScale.domain()[0], max])
                 }
 
+                this.aXScale = d3.scaleLinear()
+                    .range([0, 500])
+                    .domain([-1, 25])
+
+                let targetCoordinate = []
+                let currentCoordinate = []
+
+                let lineGenerator = d3.line()
+                    .x(d => this.aXScale(d[0]))
+                    .y(d => this.aYScale(d[1]))
+
+                container
+                    .selectAll(".line.target")
+                    .data([this._scenario.getTargetValueDiagramData()])
+                    .join(
+                        enter => {
+                            enter.each(function (d) {
+                                d.forEach((val, i) => targetCoordinate[i] = [i, val])
+                            });
+
+                            const g = enter.append("g").attr("class", "line target")
+
+                            g.append("path")
+                                .datum(targetCoordinate)
+                                .attr("d", lineGenerator)
+                                .attr("transform", "translate(50, -50)")
+                                .attr("fill", "none")
+                                .attr("stroke", "red")
+
+                            g.selectAll("circle")
+                                .data(targetCoordinate)
+                                .join("circle")
+                                .attr("cx", d => this.aXScale(d[0]))
+                                .attr("cy", d => this.aYScale(d[1]))
+                                .attr("transform", "translate(50, -50)")
+                                .attr("r", 4)
+                                .attr("fill", "red")
+                        },
+                        update => {
+                            update.each(function (d) {
+                                d.forEach((val, i) => targetCoordinate[i] = [i, val])
+                            });
+
+                            update.select("path")
+                                .datum(targetCoordinate)
+                                .transition()
+                                .duration(100)
+                                .attr("d", lineGenerator)
+
+                            update.selectAll("circle")
+                                .data(targetCoordinate)
+                                .join(
+                                    enter => enter.append("circle")
+                                        .attr("r", 4)
+                                        .attr("fill", "red"),
+                                    update => update,
+                                    exit => exit.remove()
+                                )
+                                .transition()
+                                .duration(100)
+                                .attr("cx", d => this.aXScale(d[0]))
+                                .attr("cy", d => this.aYScale(d[1]))
+                        },
+                        exit => exit.remove()
+                    )
+
+                container
+                    .selectAll(".line.current")
+                    .data([this._scenario.getCurrentSimulationState()])
+                    .join(
+                        enter => {
+                            enter.each(function (d) {
+                                d.forEach((val, i) => currentCoordinate[i] = [i, val]);
+                            });
+
+                            const g = enter.append("g").attr("class", "line current");
+
+                            g.append("path")
+                                .datum(currentCoordinate)
+                                .attr("d", lineGenerator)
+                                .attr("transform", "translate(50, -50)")
+                                .attr("fill", "none")
+                                .attr("stroke", "yellow");
+
+                            g.selectAll("circle")
+                                .data(currentCoordinate)
+                                .join("circle")
+                                .attr("cx", d => this.aXScale(d[0]))
+                                .attr("cy", d => this.aYScale(d[1]))
+                                .attr("transform", "translate(50, -50)")
+                                .attr("r", 4)
+                                .attr("fill", "yellow")
+                        },
+                        update => {
+                            update.each(function (d) {
+                                d.forEach((val, i) => currentCoordinate[i] = [i, val])
+                            });
+
+                            update.select("path")
+                                .datum(currentCoordinate)
+                                .transition()
+                                .duration(100)
+                                .attr("d", lineGenerator)
+
+                            update.selectAll("circle")
+                                .data(currentCoordinate)
+                                .join(
+                                    enter => enter.append("circle")
+                                        .attr("r", 4)
+                                        .attr("fill", "yellow"),
+                                    update => update,
+                                    exit => exit.remove()
+                                )
+                                .transition()
+                                .duration(100)
+                                .attr("cx", d => this.aXScale(d[0]))
+                                .attr("cy", d => this.aYScale(d[1]))
+                        },
+                        exit => exit.remove()
+                    );
                 let scale = (max - min) / 10
 
                 d3.select("#agentTargetDiagramY")
@@ -1555,263 +1834,215 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#agentTargetDiagramY").selectAll(".tick text")
                     .attr("font-size", "20px")
 
-                d3.selectAll(".agentDiagram").remove()
-                d3.select("#agentTargetDiagram")
-                    .selectAll(".line")
-                    .data(this._scenario.getCurrentDiff())
-                    .join(enter => {
-                        enter.each(function (d, i) {
-                            coordinate[i] = [i, d]
-                        })
-                        let lineGenerator = d3.line()
-                            .x(d => this.aXScale(d[0]))
-                            .y(d => this.aYScale(d[1]))
+                //d3.selectAll(".agentDiagram").remove()
 
-                        let g = enter.append("g").attr("class", "line")
+                let allPerf = this._scenario.getAllPerformance(1)[this._scenario.getAllSteps() - 1]
+                let minPerf = Math.floor((Math.min(...allPerf) / 100)) * 100
+                let maxPerf = Math.floor((Math.max(...allPerf) / 100) * 1.05) * 100
 
-                        g
-                            .append("path")
-                            .datum(coordinate)
-                            .attr("d", lineGenerator)
-                            .attr("transform", "translate(50, -50)")
-                            .attr("fill", "none")
-                            .attr("stroke", "red")
+                console.log(minPerf, maxPerf)
+                if (minPerf < -1e10) {
+                    minPerf = -1e10
+                }
 
-                        g.selectAll("circle")
-                            .data(coordinate)
-                            .join("circle")
-                            .attr("cx", d => this.aXScale(d[0]))
-                            .attr("cy", d => this.aYScale(d[1]))
-                            .attr("transform", "translate(50, -50)")
-                            .attr("r", 4)
-                            .attr("fill", "black")
-                    },
-                        update => {
-                            let lineGenerator = d3.line()
-                                .x(d => this.aXScale(d[0]))
-                                .y(d => this.aYScale(d[1]))
-                            update.each(function (d, i) {
-                                coordinate[i] = [i, d]
-                            })
-                            update.select("path")
-                                .datum(coordinate)
-                                .transition()
-                                .duration(100)
-                                .attr("d", lineGenerator)
+                if (maxPerf > 1e10) {
+                    maxPerf = 1e10
+                }
+                if (maxPerf < 0) {
+                    maxPerf = Math.max(maxPerf, 0)
+                }
 
-                            update.selectAll("circle")
-                                .data(coordinate)
-                                .join(enter =>
-                                    enter.append("circle")
-                                        .attr("r", 4)
-                                        .attr("fill", "black"),
-                                    update => update,
-                                    exit => exit.remove()
-                                )
-                                .transition()
-                                .duration(100)
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-
-                            return update
-                        },
-                        exit => exit.remove())
-                break
-            }
-            case 1: {
-                let coordinate = []
-                d3.select("#attackScenarioDescription").text("")
-                d3.select("#tspanDiagram1").text("Übersicht der Zielfunktion")
-                d3.select("#tspanDiagram12").text("")
-                d3.select("#infobox-agent2").classed("invisible", false)
-                d3.select("#agentTargetDiagram2").classed("invisible", false)
-                d3.select("#secondDiagram").classed("invisible", false)
+                this.aXScale = d3.scaleLinear()
+                    .range([0, 500])
+                    .domain([0, this._scenario.getAllSteps()])
 
                 this.aYScale = d3.scaleLinear()
                     .range([400, 0])
-                    .domain([0, 5000])
+                    .domain([minPerf, maxPerf])
+                    .clamp(true)
 
-                let scale = 400
-
-                //gucken wie sie das mit Angriffsszenario 3 noch verhält
-                d3.select("#agentTargetDiagramY")
+                d3.select("#agentTargetDiagramY2")
                     .call(d3.axisLeft(this.aYScale)
                         .ticks(10)
                         .tickFormat(d3.format("d")))
-                //.tickValues(d3.range(this.aYScale.domain()[0], this.aYScale.domain()[1], scale)))
 
-                d3.select("#agentTargetDiagramY").selectAll(".tick text")
-                    .attr("font-size", "20px")
+                d3.select("#agentTargetDiagramX2")
+                    .call(d3.axisBottom(this.aXScale)
+                        .ticks(30)
+                        .tickFormat(d3.format("d")))
+
+                d3.select("#agentTargetDiagram2")
+                    .append("line")
+                    .attr("x1", 0)
+                    .attr("x2", 500)
+                    .attr("y1", this.aYScale(0))
+                    .attr("y2", this.aYScale(0))
+                    .attr("transform", "translate(50, 420)")
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 1)
 
 
-                d3.select("#agentTargetDiagram")
-                    .selectAll(".line")
-                    .data(this._scenario.getTargetValueDiagramData())
-                    .join(enter => {
-                        enter.each(function (d, i) {
-                            coordinate[i] = [i, d]
-                        })
+                if (maxPerf == 10000000000) {
+                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                        .attr("font-size", "2px")
+                } else {
+                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                        .attr("font-size", "18px")
+                }
 
-                        let lineGenerator = d3.line()
-                            .x(d => this.aXScale(d[0]))
-                            .y(d => this.aYScale(d[1]))
+                if (minPerf == -10000000000) {
+                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                        .attr("font-size", "2px")
+                } else {
+                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                        .attr("font-size", "18px")
+                }
 
-                        let g = enter.append("g").attr("class", "line")
-                            .classed("agentDiagram", true)
 
-                        g
-                            .append("path")
-                            .datum(coordinate)
-                            .attr("d", lineGenerator)
-                            .attr("transform", "translate(50, -50)")
-                            .attr("fill", "none")
-                            .attr("stroke", "red")
-                            .classed("agentDiagram", true)
+                let self = this
 
-                        console.log(coordinate)
-                        g.selectAll("circle")
-                            .data(coordinate)
-                            .join("circle")
-                            .attr("cx", d => this.aXScale(d[0]))
-                            .attr("cy", d => this.aYScale(d[1]))
-                            .attr("transform", "translate(50, -50)")
-                            .attr("r", 4)
-                            .attr("fill", "black")
-                            .classed("agentDiagram", true)
+                let performanceData = this._scenario.getAllPerformance(0)
+                let performanceCoordinate = performanceData.map((val, i) => [i, val])
 
-                    },
+                console.log(performanceData)
+                console.log(performanceCoordinate)
+                d3.select("#agentTargetDiagram2")
+                    .selectAll(".line.perfDia")
+                    .data([performanceCoordinate])
+                    .join(
+                        enter => {
+                            const g = enter.append("g")
+                                .attr("class", "line perfDia")
+
+                            g.append("path")
+                                .attr("d", d3.line()
+                                    .x(d => self.aXScale(d[0]))
+                                    .y(d => self.aYScale(d[1]))
+                                    (performanceCoordinate))
+                                .attr("transform", "translate(50, 420)")
+                                .attr("fill", "none")
+                                .attr("stroke", "orange")
+
+                            g.selectAll("circle")
+                                .data(performanceCoordinate)
+                                .join("circle")
+                                .attr("cx", d => self.aXScale(d[0]))
+                                .attr("cy", d => self.aYScale(d[1]))
+                                .attr("transform", "translate(50, 420)")
+                                .attr("r", 1)
+                                .attr("fill", "orange")
+                        },
+
                         update => {
-                            let lineGenerator = d3.line()
-                                .x(d => this.aXScale(d[0]))
-                                .y(d => this.aYScale(d[1]))
-                            update.each(function (d, i) {
-                                coordinate[i] = [i, d]
-                            })
                             update.select("path")
-                                .datum(coordinate)
+                                .datum(performanceCoordinate)
                                 .transition()
                                 .duration(100)
-                                .attr("d", lineGenerator)
+                                .attr("d", d3.line()
+                                    .x(d => self.aXScale(d[0]))
+                                    .y(d => self.aYScale(d[1]))
+                                )
 
                             update.selectAll("circle")
-                                .data(coordinate)
-                                .join(enter =>
-                                    enter.append("circle")
-                                        .attr("r", 4)
-                                        .attr("fill", "black"),
+                                .data(performanceCoordinate)
+                                .join(
+                                    enter => enter.append("circle")
+                                        .attr("r", 1)
+                                        .attr("fill", "orange")
+                                        .attr("transform", "translate(50, 420)"),
                                     update => update,
                                     exit => exit.remove()
                                 )
                                 .transition()
                                 .duration(100)
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-
-                            return update
+                                .attr("cx", d => self.aXScale(d[0]))
+                                .attr("cy", d => self.aYScale(d[1]))
                         },
+
                         exit => exit.remove()
                     )
-                {
-                    let currentValue = this._scenario.getCurrentSimulationState()
-                    let coordinate = []
-                    let min = Math.floor((Math.min(...currentValue) / 100)) * 100
-                    let max = Math.ceil((Math.max(...currentValue) / 100)) * 100
-                    console.log(min, max)
-                    if (min < this.aYScale.domain()[0]) {
-                        this.aYScale = d3.scaleLinear()
-                            .range([400, 0])
-                            .domain([min, this.aYScale.domain()[1]])
-                    } else if (min - 1000 > this.aYScale.domain()[0]) {
-                        this.aYScale = d3.scaleLinear()
-                            .range([400, 0])
-                            .domain([min, this.aYScale.domain()[1]])
-                    }
 
-                    if (max > this.aYScale.domain()[1]) {
-                        this.aYScale = d3.scaleLinear()
-                            .range([400, 0])
-                            .domain([this.aYScale.domain()[0], max])
-                    } else if (max + 1000 < this.aYScale.domain()[1]) {
-                        this.aYScale = d3.scaleLinear()
-                            .range([400, 0])
-                            .domain([this.aYScale.domain()[0], max])
-                    }
+                if (this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] >= 1e10 || this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] <= -1e10) {
+                    d3.selectAll(".infiniteValue").classed("invisible", false)
+                    d3.select("#infiniteValue").text(this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()])
+                } else {
+                    d3.selectAll(".infiniteValue").classed("invisible", true)
+                }
 
-                    let scale = (Math.abs(this.aYScale.domain()[1]) + Math.abs(this.aYScale.domain()[0])) / 10
-                    /* this.aYScale = d3.scaleLinear()
-                        .range([400, 0])
-                        .domain([0, 5000]) */
+                let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
+                console.log(lightIndicatorPerformace)
+                if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
+                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                    d3.select("#performanceLightCircle1").attr("fill", "red")
+                } else if (lightIndicatorPerformace < 80000 && lightIndicatorPerformace >= 60000 || lightIndicatorPerformace > -80000 && lightIndicatorPerformace <= -60000) {
+                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                    d3.select("#performanceLightCircle2").attr("fill", "orange")
+                } else if (lightIndicatorPerformace < 60000 && lightIndicatorPerformace >= 35000 || lightIndicatorPerformace > -60000 && lightIndicatorPerformace <= -35000) {
+                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                    d3.select("#performanceLightCircle3").attr("fill", "yellow")
+                } else if (lightIndicatorPerformace < 35000 && lightIndicatorPerformace >= 10000 || lightIndicatorPerformace > -35000 && lightIndicatorPerformace <= -10000) {
+                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                    d3.select("#performanceLightCircle4").attr("fill", "lightgreen")
+                } else if (lightIndicatorPerformace < 10000 && lightIndicatorPerformace >= 0 || lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= -0) {
+                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                    d3.select("#performanceLightCircle5").attr("fill", "green")
+                }
 
-                    d3.select("#agentTargetDiagramY2")
-                        .call(d3.axisLeft(this.aYScale)
-                            .ticks(10)
-                            .tickFormat(d3.format("d")))
-                    //.tickValues(d3.range(this.aYScale.domain()[0], this.aYScale.domain()[1], scale)))
+                break
+            }
+            case 1: {
+                d3.select("#tspanDiagram1").classed("invisible", true)
+                d3.select("#tspanDiagram12").classed("invisible", true)
+                //d3.select("#infobox-agent").classed("invisible", true)
+                //d3.select("#infobox-agent2").classed("invisible", true)
+                d3.select("#agentTargetDiagram").classed("invisible", true)
+                d3.select("#agentTargetDiagram2").classed("invisible", true)
+                d3.select("#secondDiagram").classed("invisible", true)
+                d3.select("#communicationInformationText").classed("invisible", false)
+                d3.select("#panelAgentStatistics").classed("invisible", false)
+                d3.select("#infobox-agent").attr("transform", "translate(25, -60)")
+                d3.select("#infobox-agent2").attr("transform", "translate(25, 500)")
+                d3.select("#performanceIndicator").classed("invisible", true)
 
-                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
-                        .attr("font-size", "20px")
 
-                    d3.select("#agentTargetDiagram2")
-                        .selectAll(".line")
-                        .data(this._scenario.getCurrentSimulationState())
-                        .join(enter => {
-                            enter.each(function (d, i) {
-                                coordinate[i] = [i, d]
-                            })
-                            let lineGenerator = d3.line()
-                                .x(d => this.aXScale(d[0]))
-                                .y(d => this.aYScale(d[1]))
+                let comm = this._scenario.getCurrentCommunicationLinks()
+                let performance = comm[0].performance
+                let sender = comm[0].source
+                let negoID = comm[0].negotiationID
+                let receivers = []
+                comm.forEach((target) => {
+                    receivers.push(target.target)
+                })
+                if (!(receivers.length > 4)) {
+                    d3.select("#tspanReceivers").text(receivers)
+                }
+                d3.select("#tspanSender").text(sender)
+                d3.select("#tspanNegoID").text(negoID)
+                d3.select("#tspanPerformance").text(performance)
 
-                            let g = enter.append("g").attr("class", "line")
+                let fullText = this.getCurrentAttackSceanrioText(true)
 
-                            g
-                                .append("path")
-                                .datum(coordinate)
-                                .attr("d", lineGenerator)
-                                .attr("transform", "translate(40, 500)")
-                                .attr("fill", "none")
-                                .attr("stroke", "red")
+                d3.select("#infoTextSecondPage")
+                    .selectAll("tspan")
+                    .data(fullText)
+                    .enter()
+                    .append("tspan")
+                    .text(d => { return d })
+                    .classed('time fill-white text-xl font-bold', true)
+                    .attr("dy", (d, i) => i === 0 ? "0em" : "1.2em")
+                    .attr("x", 0)
 
-                            g.selectAll("circle")
-                                .data(coordinate)
-                                .join("circle")
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-                                .attr("transform", "translate(40, 500)")
-                                .attr("r", 4)
-                                .attr("fill", "black")
-                        },
-                            update => {
-                                let lineGenerator = d3.line()
-                                    .x(d => this.aXScale(d[0]))
-                                    .y(d => this.aYScale(d[1]))
-                                update.each(function (d, i) {
-                                    coordinate[i] = [i, d]
-                                })
-                                update.select("path")
-                                    .datum(coordinate)
-                                    .transition()
-                                    .duration(100)
-                                    .attr("d", lineGenerator)
-
-                                update.selectAll("circle")
-                                    .data(coordinate)
-                                    .join(enter =>
-                                        enter.append("circle")
-                                            .attr("r", 4)
-                                            .attr("fill", "black"),
-                                        update => update,
-                                        exit => exit.remove()
-                                    )
-                                    .transition()
-                                    .duration(100)
-                                    .attr("cx", d => this.aXScale(d[0]))
-                                    .attr("cy", d => this.aYScale(d[1]))
-
-                                return update
-                            },
-                            exit => exit.remove())
-                    break
+                if (this.attackScenario == 0) {
+                    d3.select("#panelAgentStatistics")
+                        .append("a")
+                        .attr("xlink:href", "https://uol.de/f/2/dept/informatik/ag/ui/publications/HLS14b.pdf")
+                        .attr("target", "_blank")
+                        .attr("transform", "translate(30, 775)")
+                        .append("text")
+                        .text("PDF-Link")
+                        .attr("font-size", "18px")
+                        .attr("fill", "red")
+                        .style("cursor", "pointer")
                 }
                 break
             }
@@ -1832,9 +2063,11 @@ export class SideBarSmall extends GuiElement {
         d3.select("#agentViewPanelContent").classed("invisible", false)
         d3.select("#infobox-agent").classed("invisible", false)
         d3.select(".agentStats").classed("invisible", false)
-        d3.select("#sideBarSVG").attr("transform", d => `translate(${globalThis.window.innerWidth - 420 - 30}, ${globalThis.window.innerHeight - 720 - 600}) scale(1)`)
-        d3.select("#panelFooter").attr("transform", d => `translate(10, ${10 + 250 + 10 + 300 + 10 + 600})`)
-        d3.select("#panelHeader").attr("height", 150)
+        d3.select("#sideBarSVG").attr("transform", d => `translate(${globalThis.window.innerWidth - 600 - 10}, ${globalThis.window.innerHeight - 720 - 600}) scale(1)`)
+        d3.select("#panelFooter").attr("transform", d => `translate(125, ${10 + 250 + 10 + 300 + 10 + 600})`)
+        d3.select("#panelHeader").attr("width", 580)
+        d3.select("#panelHeader").attr("height", 200)
+        d3.select("#parentSvgEntry").attr("width", 600)
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
             .append("tspan")
@@ -1860,7 +2093,7 @@ export class SideBarSmall extends GuiElement {
 
         agentStatistics
             .append("rect")
-            .attr("width", 420 - (4 * 10))
+            .attr("width", 600 - (4 * 10))
             .attr("height", 300)
             .classed('stroke-0 stroke-white fill-none opacity-100', true)
 
@@ -1873,38 +2106,40 @@ export class SideBarSmall extends GuiElement {
             .classed("text-lg font-bold fill-white", "true")
             .attr("id", "agentHeader")
             .text("")
-            .attr("x", (420 - (7 * 10)) / 2)
+            .attr("x", (600 - (7 * 10)) / 2)
             .attr("y", 10)
             .style("text-anchor", "middle")
 
         textForDiagram
             .append("tspan")
             .attr("id", "tspanDiagram1")
-            .text("Differenzwert von Zielfunktion ")
+            .text("Zielfunktion")
+            .attr("fill", "red")
             .attr("dy", "1.2em")
-            .attr("x", 175)
+            .attr("x", 275)
             .attr("y", -20)
 
         textForDiagram
             .append("tspan")
             .attr("id", "tspanDiagram12")
-            .text("und aktuellem Simulationswert")
+            .text("Aktueller Simulationswert")
+            .attr("fill", "yellow")
             .attr("dy", "1.2em")
-            .attr("x", 175)
+            .attr("x", 275)
         //.attr("y", -20)
 
         let currentAttackScenarioDescription = agentPanelContent
             .append("text")
             .attr("id", "attackScenarioDescription")
-            .attr("transform", `translate(0, 600)`)
+            .attr("transform", `translate(400, -140)`)
+            .attr("width", 150)
             .classed('time fill-white text-xl font-bold', true)
-            .text("")
 
 
         let backToPrevDiagram = agentStatistics
             .append("g")
             .attr("id", "forwardDiagramArrow")
-            .attr("transform", "translate(25,10)")
+            .attr("transform", "translate(50,15)")
             .style("cursor", "pointer")
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
@@ -1924,7 +2159,7 @@ export class SideBarSmall extends GuiElement {
         let toNextDiagram = agentStatistics
             .append("g")
             .attr("id", "forwardArrow")
-            .attr("transform", `translate(350, 10)`)
+            .attr("transform", `translate(500, 15)`)
             .style("cursor", "pointer")
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
@@ -1949,13 +2184,13 @@ export class SideBarSmall extends GuiElement {
         d3.select("#infobox-d3").remove()
         d3.selectAll(".panelContent").remove()
         d3.select("#textInfoBox").remove()
-        console.log(typeof "Folgende Angriffsszenarien können gewählt werden")
+
         let text0 = ["Folgende Angriffsszenarien können", "gewählt werden:"]
         let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
         let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
         let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
-        let text4 = ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
-        let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3] //"\u00A0", ...text4]
+        let text4 = ["4. Iterative Erhöhung der", "Performancefunktion", "\u00A0", "TODO: Beschreibung ergänzen"]
+        let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3, "\u00A0", ...text4]
         let attackScenarioDesc = d3.select("#panelStatsClassic")
             .append("text")
             .attr("id", "attackScenarioDesc")
@@ -2080,7 +2315,7 @@ export class SideBarSmall extends GuiElement {
                 .style("fill", "#3498db")
                 .style("transition", "fill 0.2s ease-in-out")
                 .on("click", function () {
-                    if (scenarioValue < 4) {
+                    if (scenarioValue < 3) {
                         scenarioValue += 1
                         that.changeScenarioTextSelection(scenarioValue)
                     }
@@ -2134,27 +2369,40 @@ export class SideBarSmall extends GuiElement {
                 text = "Iterativ die Performance erhöht"
                 d3.select("#currentScenarioG").attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 170}, ${(globalThis.window.innerHeight / 6) / 2 + 5})`)
                 break
-            case 4:
-                text = "network size attack (iteratively add agent to system state)"
-                text = "Fügt dauerhaft neue Agenten hinzu"
-                d3.select("#currentScenarioG").attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 200}, ${(globalThis.window.innerHeight / 6) / 2 + 5})`)
-                break
         }
 
         d3.select("#scenarioTextSelection").text(text)
     }
 
-    getCurrentAttackSceanrioText() {
-        switch (this.attackScenario) {
-            case 0:
-                return ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
-            case 1:
-                return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
-            case 2:
-                return ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
-            case 3:
-                return ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
+    getCurrentAttackSceanrioText(extended) {
+        if (!extended) {
+            switch (this.attackScenario) {
+                case 0:
+                    return String("1. Kein Angriffsszenario")
+                //, "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
+                case 1:
+                    return String("2. Agent manipuliert Fahrplan")
+                //, "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
+                case 2:
+                    return String("3. Zielfunktion manipuliert")
+                //, "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
+                case 3:
+                    return String("4. Manipulation der Gesamtbewertung")
+                //, "\u00A0", "TODO: Beschreibung ergänzen"]
+            }
+        } else {
+            switch (this.attackScenario) {
+                case 0:
+                    return ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: "]
+                case 1:
+                    return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
+                case 2:
+                    return ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
+                case 3:
+                    return ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
+            }
         }
+
     }
 }
 

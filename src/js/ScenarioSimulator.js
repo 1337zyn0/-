@@ -41,6 +41,7 @@ export class ScenarioSimulator {
         this.scenarioD3SelfConsumptionRate = 0
         this.scenarioD3TotalCo2 = 0
         this.targetValue = []
+        this.simulationPerformance = []
         this.currentState = []
         this.currentDiff = []
         this.inSimulation = false
@@ -178,14 +179,14 @@ export class ScenarioSimulator {
         this._step = step
     }
 
-    getTargetValueDiagramData(){
+    getTargetValueDiagramData() {
         return this.targetValue
     }
 
-    getCurrentSimulationState(){
+    getCurrentSimulationState() {
         return this.currentState[this._step]
     }
-    
+
     initiateSimulation(attack) {
         this.inSimulation = true
         this._simulationData = this._simulationData.get(attack)
@@ -226,7 +227,8 @@ export class ScenarioSimulator {
                         "source": device.agentID,
                         "sourceRef": device,
                         "target": device.neighbours[a].agentID,
-                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID)
+                        "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID),
+                        "performance": currentNegotiation.performance
                     })
                 }
                 return links
@@ -238,8 +240,17 @@ export class ScenarioSimulator {
         return this.allConfig.get(this._step)
     }
 
-    getCurrentDiff(){
+    getCurrentDiff() {
         return this.currentDiff[this._step]
+    }
+
+    getAllPerformance(i){
+        if(i == 0){
+            return this.simulationPerformance[this._step]
+        }
+        if(i == 1){
+            return this.simulationPerformance
+        }
     }
 
     stepBack() {
@@ -343,9 +354,43 @@ export class ScenarioSimulator {
             }
             this.allConfig.set(z, saveConfig)
         }
+
+        console.log(this.allConfig)
     }
 
     generateAllAgentStatistics() {
+        if (this.targetValue.length === 0) {
+            for (let i = 0; i < Object.values(this._simulationData)[0].target_parameters[0].length; i++) {
+                this.targetValue[i] = Object.values(this._simulationData)[0].target_parameters[0][i]
+            }
+        }
+        
+        for (let a = 0; a < Object.keys(this._simulationData).length; a++) { // simulationsschritt
+            //console.log(Object.values(this._simulationData)[a].solution_candidate)
+            let values = []
+            let solution_candidate = Object.values(Object.values(this._simulationData)[a].solution_candidate)
+            for (let i = 0; i < 24; i++) {//24 zeitschritte eines einzelnen Agenten
+                let sum = 0
+                for (let t = 0; t < solution_candidate.length; t++) { //solutionCandidate im jeweiligen Simulationsschritt
+                    //console.log(solution_candidate[t][i])
+                    sum = sum + solution_candidate[t][i]
+                }
+                values.push(sum)
+            }
+            this.currentState[a] = values
+        }
+
+        if(this.simulationPerformance.length === 0){
+            this.simulationPerformance.push([Object.values(this._simulationData)[0].performance])
+            for(let k = 1; k < Object.entries(this._simulationData).length; k++){
+                let simulation = Object.values(this._simulationData)[k].performance
+                let asdf = this.simulationPerformance.at(k-1)
+                let newPerf = [...asdf, simulation]
+                this.simulationPerformance.push(newPerf)
+            }
+        }
+    }
+    asdf() {
         let entries = Object.values(this._simulationData)
         let nodeConfig = []
 
@@ -362,11 +407,11 @@ export class ScenarioSimulator {
             for (let x = 0; x < Object.entries(previousStep).length; x++) {
                 if (currentStep[Object.keys(previousStep)[x]] === undefined) {
                     currentStep[Object.keys(previousStep)[x]] = Object.values(previousStep)[x]
-                    
+
                 } //else {
-                    //console.log(Object.keys(previousStep)[x])
-                    //console.log(currentStep[Object.keys(previousStep)[x]])
-                    //console.log(this.arraysEqual(currentStep[Object.keys(previousStep)[x]], previousStep[Object.keys(previousStep)[x]]))
+                //console.log(Object.keys(previousStep)[x])
+                //console.log(currentStep[Object.keys(previousStep)[x]])
+                //console.log(this.arraysEqual(currentStep[Object.keys(previousStep)[x]], previousStep[Object.keys(previousStep)[x]]))
                 //}
             }
             nodeConfig[j] = currentStep
@@ -390,9 +435,9 @@ export class ScenarioSimulator {
 
         //TODO: erstellen der differenzwerte vom aktuellen simulationsstand zum targetvalue
 
-        for(let p = 0; p < this.currentState.length; p++){
+        for (let p = 0; p < this.currentState.length; p++) {
             let values = []
-            for(let t = 0; t < 24; t++){
+            for (let t = 0; t < 24; t++) {
                 let sum = 0
                 sum = this.targetValue[t] - this.currentState[p][t]
                 values.push(sum)
@@ -400,6 +445,8 @@ export class ScenarioSimulator {
             this.currentDiff[p] = values
         }
     }
+
+
 
     calculateLoadsByLatestLinks() {
         let activeNodes = Array.from(Object.entries(this._energyDeviceList).map(([key, device]) => {
