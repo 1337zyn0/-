@@ -389,7 +389,6 @@ export class Time extends GuiElement {
             .on("click", function () {
                 if (that.play) {
                     that.play = false
-                    console.log(that.play)
                     d3.select("#pauseButton1").attr("fill", "red")
                     d3.select("#pauseButton2").attr("fill", "red")
                     d3.select("#playButton").attr("fill", "white")
@@ -669,7 +668,7 @@ export class SideBarSmall extends GuiElement {
         const innerPanel = this.parentSvgEntry
             .append("g")
             .attr("id", "sideBar")
-            .attr("transform", d => `translate(${padding}, ${padding})`)
+            .attr("transform", d => `translate(${padding + 10}, ${padding})`)
 
         drawPanelHeader(innerPanel)
 
@@ -1182,7 +1181,7 @@ export class SideBarSmall extends GuiElement {
             agentStats.width = 500
             agentStats.height = panelD3Height - 130
             agentStats.x = 3 * padding + 20
-            agentStats.y = -60
+            agentStats.y = -70
             agentStats.rectCss = "stroke-0 stroke-black fill-[#364d6f]"
             //agentStats.textHead = "Hinweis"
             agentStats.textHeadCss = "fill-white text-xl font-bold"
@@ -1311,7 +1310,7 @@ export class SideBarSmall extends GuiElement {
                 .append("g")
                 .attr("id", "agentTargetDiagramY")
                 .classed("yAxis text-white stroke-1 border-1", true)
-                .attr("transform", "translate(50, -50)")
+                .attr("transform", "translate(50, -60)")
                 .call(d3.axisLeft(that.aYScale)
                     .ticks(10)
                     .tickFormat(d3.format("d"))
@@ -1321,13 +1320,31 @@ export class SideBarSmall extends GuiElement {
                 .append("g")
                 .attr("id", "agentTargetX")
                 .classed("xAxis text-white stroke-1 border-1", true)
-                .attr("transform", `translate(50, ${350})`)
-                .call(
-                    d3.axisBottom(that.aXScale)
-                        .ticks(24)
-                        .tickFormat(d3.format("d"))
-                        .tickValues(d3.range(0, 25, 4))
-                )
+                .attr("transform", `translate(50, ${340})`)
+                .call(d3.axisBottom(that.aXScale)
+                    .ticks(24)
+                    .tickFormat(d3.format("d"))
+                    .tickValues(d3.range(0, 25, 4)))
+
+            agentTargetDiagram1
+                .append("text")
+                .attr("class", "axis-label")
+                .attr("transform", `translate(20, ${-75})`)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .classed("fill-white font-bold", true)
+                .text("Wert")
+
+            agentTargetDiagram1
+                .append("text")
+                .attr("class", "axis-label")
+                .attr("transform", `translate(50, ${345})`)
+                .attr("x", 250)
+                .attr("y", 40)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .classed("fill-white font-bold", true)
+                .text("Zeitschritt")
 
             agentTargetDiagram1.selectAll(".tick text")
                 .attr("font-size", "20px")
@@ -1347,18 +1364,42 @@ export class SideBarSmall extends GuiElement {
                     .tickValues(d3.range(0, 5000, 400)))
 
             agentDiagram2
+                .append("text")
+                .attr("class", "axis-label")
+                .attr("transform", `translate(11, ${407})`)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .classed("fill-white font-bold", true)
+                .text("Performance")
+
+            agentDiagram2
                 .append("g")
                 .attr("id", "agentTargetX2")
                 .classed("xAxis text-white stroke-1 border-1", true)
-                .attr("transform", `translate(50, ${850})`)
+                .attr("transform", `translate(50, ${825})`)
+                .call(d3.axisBottom(that.aXScale)
+                    .ticks(24)
+                    .tickFormat(d3.format("d"))
+                    .tickValues(d3.range(0, 25, 4)))
 
             agentDiagram2.selectAll(".tick text")
                 .attr("font-size", "20px")
 
+            agentDiagram2
+                .append("text")
+                .attr("class", "axis-label")
+                .attr("transform", `translate(50, ${835})`)
+                .attr("x", 250)
+                .attr("y", 40)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .classed("fill-white font-bold", true)
+                .text("Simulationsschritt")
+
             let text2ndDiagram = ref
                 .append("text")
                 .attr("id", "secondDiagram")
-                .attr("transform", `translate(125, 400)`)
+                .attr("transform", `translate(125, 410)`)
                 .attr("fill", "orange")
                 .classed("text-lg font-bold", "true")
                 .classed("invisible", false)
@@ -1395,7 +1436,7 @@ export class SideBarSmall extends GuiElement {
             let performanceLight = ref
                 .append("g")
                 .attr("id", "performanceIndicator")
-                .attr("transform", "translate(-20, 900)")
+                .attr("transform", "translate(-20, 930)")
                 .classed("invisible", false)
 
             let performanceLightText = performanceLight
@@ -1669,7 +1710,7 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#secondDiagram").classed("invisible", false)
                 d3.select("#communicationInformationText").classed("invisible", true)
                 d3.select("#panelAgentStatistics").classed("invisible", true)
-                d3.select("#infobox-agent").attr("transform", "translate(50, -60)")
+                d3.select("#infobox-agent").attr("transform", "translate(50, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
                 d3.select("#performanceIndicator").classed("invisible", false)
 
@@ -1728,7 +1769,7 @@ export class SideBarSmall extends GuiElement {
                             g.append("path")
                                 .datum(targetCoordinate)
                                 .attr("d", lineGenerator)
-                                .attr("transform", "translate(50, -50)")
+                                .attr("transform", "translate(50, -60)")
                                 .attr("fill", "none")
                                 .attr("stroke", "red")
 
@@ -1737,7 +1778,7 @@ export class SideBarSmall extends GuiElement {
                                 .join("circle")
                                 .attr("cx", d => this.aXScale(d[0]))
                                 .attr("cy", d => this.aYScale(d[1]))
-                                .attr("transform", "translate(50, -50)")
+                                .attr("transform", "translate(50, -60)")
                                 .attr("r", 4)
                                 .attr("fill", "red")
                         },
@@ -1783,7 +1824,7 @@ export class SideBarSmall extends GuiElement {
                             g.append("path")
                                 .datum(currentCoordinate)
                                 .attr("d", lineGenerator)
-                                .attr("transform", "translate(50, -50)")
+                                .attr("transform", "translate(50, -60)")
                                 .attr("fill", "none")
                                 .attr("stroke", "yellow");
 
@@ -1792,7 +1833,7 @@ export class SideBarSmall extends GuiElement {
                                 .join("circle")
                                 .attr("cx", d => this.aXScale(d[0]))
                                 .attr("cy", d => this.aYScale(d[1]))
-                                .attr("transform", "translate(50, -50)")
+                                .attr("transform", "translate(50, -60)")
                                 .attr("r", 4)
                                 .attr("fill", "yellow")
                         },
@@ -1840,7 +1881,6 @@ export class SideBarSmall extends GuiElement {
                 let minPerf = Math.floor((Math.min(...allPerf) / 100)) * 100
                 let maxPerf = Math.floor((Math.max(...allPerf) / 100) * 1.05) * 100
 
-                console.log(minPerf, maxPerf)
                 if (minPerf < -1e10) {
                     minPerf = -1e10
                 }
@@ -1866,10 +1906,14 @@ export class SideBarSmall extends GuiElement {
                         .ticks(10)
                         .tickFormat(d3.format("d")))
 
-                d3.select("#agentTargetDiagramX2")
+                d3.select("#agentTargetX2")
                     .call(d3.axisBottom(this.aXScale)
                         .ticks(30)
-                        .tickFormat(d3.format("d")))
+                        .tickFormat(d3.format("d"))
+                        .tickValues(d3.range(0, this._scenario.getAllSteps(), Math.ceil(this._scenario.getAllSteps() / 10))))
+
+                d3.select("#agentTargetX2").selectAll(".tick text").attr("font-size", "20px")
+
 
                 d3.select("#agentTargetDiagram2")
                     .append("line")
@@ -1904,8 +1948,6 @@ export class SideBarSmall extends GuiElement {
                 let performanceData = this._scenario.getAllPerformance(0)
                 let performanceCoordinate = performanceData.map((val, i) => [i, val])
 
-                console.log(performanceData)
-                console.log(performanceCoordinate)
                 d3.select("#agentTargetDiagram2")
                     .selectAll(".line.perfDia")
                     .data([performanceCoordinate])
@@ -1970,7 +2012,6 @@ export class SideBarSmall extends GuiElement {
                 }
 
                 let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
-                console.log(lightIndicatorPerformace)
                 if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
                     d3.selectAll(".performanceLightCircle").attr("fill", "white")
                     d3.select("#performanceLightCircle1").attr("fill", "red")
@@ -2000,7 +2041,7 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#secondDiagram").classed("invisible", true)
                 d3.select("#communicationInformationText").classed("invisible", false)
                 d3.select("#panelAgentStatistics").classed("invisible", false)
-                d3.select("#infobox-agent").attr("transform", "translate(25, -60)")
+                d3.select("#infobox-agent").attr("transform", "translate(25, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(25, 500)")
                 d3.select("#performanceIndicator").classed("invisible", true)
 
@@ -2067,7 +2108,7 @@ export class SideBarSmall extends GuiElement {
         d3.select("#panelFooter").attr("transform", d => `translate(125, ${10 + 250 + 10 + 300 + 10 + 600})`)
         d3.select("#panelHeader").attr("width", 580)
         d3.select("#panelHeader").attr("height", 200)
-        d3.select("#parentSvgEntry").attr("width", 600)
+        d3.select("#parentSvgEntry").attr("width", 650)
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
             .append("tspan")
@@ -2099,7 +2140,7 @@ export class SideBarSmall extends GuiElement {
 
         let agentPanelContent = agentStatistics
             .append("g")
-            .attr("transform", 'translate(10, 10)')
+            .attr("transform", 'translate(10, 0)')
 
         let textForDiagram = agentPanelContent
             .append("text")
@@ -2139,12 +2180,11 @@ export class SideBarSmall extends GuiElement {
         let backToPrevDiagram = agentStatistics
             .append("g")
             .attr("id", "forwardDiagramArrow")
-            .attr("transform", "translate(50,15)")
+            .attr("transform", "translate(50,0)")
             .style("cursor", "pointer")
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
             .on("click", function () {
-                console.log(that.currentDiagram)
                 if (that.currentDiagram > 0) {
                     that.currentDiagram -= 1
                     that.updateAgentDiagram()
@@ -2159,17 +2199,14 @@ export class SideBarSmall extends GuiElement {
         let toNextDiagram = agentStatistics
             .append("g")
             .attr("id", "forwardArrow")
-            .attr("transform", `translate(500, 15)`)
+            .attr("transform", `translate(500, 0)`)
             .style("cursor", "pointer")
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
             .on("click", function () {
-                console.log(that.currentDiagram)
                 if (that.currentDiagram < 1) {
-                    console.log("click")
                     that.currentDiagram += 1
                     that.updateAgentDiagram()
-                    console.log(that.currentDiagram)
                 }
             })
 
@@ -2189,7 +2226,7 @@ export class SideBarSmall extends GuiElement {
         let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
         let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
         let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
-        let text4 = ["4. Iterative Erhöhung der", "Performancefunktion", "\u00A0", "TODO: Beschreibung ergänzen"]
+        let text4 = ["4. Iterative Erhöhung der", "Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten", "manipuliert und iterativ erhöht."]
         let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3, "\u00A0", ...text4]
         let attackScenarioDesc = d3.select("#panelStatsClassic")
             .append("text")
@@ -2378,16 +2415,16 @@ export class SideBarSmall extends GuiElement {
         if (!extended) {
             switch (this.attackScenario) {
                 case 0:
-                    return String("1. Kein Angriffsszenario")
+                    return String("Kein Angriffsszenario")
                 //, "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
                 case 1:
-                    return String("2. Agent manipuliert Fahrplan")
+                    return String("Agent manipuliert Fahrplan")
                 //, "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
                 case 2:
-                    return String("3. Zielfunktion manipuliert")
+                    return String("Zielfunktion manipuliert")
                 //, "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
                 case 3:
-                    return String("4. Manipulation der Gesamtbewertung")
+                    return String("Manipulation der Performance- funktion")
                 //, "\u00A0", "TODO: Beschreibung ergänzen"]
             }
         } else {
@@ -2395,11 +2432,11 @@ export class SideBarSmall extends GuiElement {
                 case 0:
                     return ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: "]
                 case 1:
-                    return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
+                    return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden.", "Die in rot dargestellten Agenten", "arbeiten mit manipulierten Daten"]
                 case 2:
-                    return ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
+                    return ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre Fahrpläne", "auf ein falsches Ziel. Achtung: Im Diagramm", "wird die originale Zielfunktion dargestellt."]
                 case 3:
-                    return ["4. Manipulation der Gesamtbewertung", "\u00A0", "TODO: Beschreibung ergänzen"]
+                    return ["4. Iterative Erhöhung der Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten manipuliert", "und iterativ erhöht."]
             }
         }
 

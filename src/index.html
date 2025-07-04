@@ -61,6 +61,7 @@
     const nodeManager = new NodeManager()
     var inSimulation = false
     let currentStep = -1
+    let manipulatedData = {}
 
     const config = {
       energy_device_power: [],
@@ -459,10 +460,6 @@
               .classed("ui", d => d.logic.isTypeOf(NodeType.io))
               .classed("invisible", d => d.isLabelHidden)
               .classed("labelGroup", true)
-              .call(d3.drag()
-                .on("start", null)
-                .on("drag", null)
-                .on("end", null))
 
             let labelRect = nodeLabel
               .append("rect")
@@ -470,7 +467,7 @@
                 if (globalThis.window.innerWidth / 12 < 190) {
                   return 190 + globalThis.window.innerWidth / 293
                 }
-                return globalThis.window.innerWidth / 10
+                return 250
               })
               .attr('height', function (d) {
                 return globalThis.window.innerHeight / 5
@@ -485,11 +482,6 @@
                 .on("end", function (event, d) {
                   if (startX > event.x) {
                     switch (d.page) {
-                      case 0:
-                        d.page = 1
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
                       case 1:
                         d.page = 2
                         let currentConfiguration = scenario.getCurrentConfiguration()
@@ -503,11 +495,6 @@
                     }
                   } else if (startX < event.x) {
                     switch (d.page) {
-                      case 1:
-                        d.page = 0
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
                       case 2:
                         d.page = 1
                         nodeManager.updateNode(d)
@@ -557,11 +544,6 @@
                 .on("end", function (event, d) {
                   if (startX > event.x) {
                     switch (d.page) {
-                      case 0:
-                        d.page = 1
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
                       case 1:
                         d.page = 2
                         nodeManager.updateNode(d)
@@ -570,11 +552,6 @@
                     }
                   } else if (startX < event.x) {
                     switch (d.page) {
-                      case 1:
-                        d.page = 0
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
                       case 2:
                         d.page = 1
                         nodeManager.updateNode(d)
@@ -583,110 +560,6 @@
                     }
                   }
                 }))
-
-            let pageCircle = nodeLabel
-              .append("circle")
-              .attr("id", d => "pageCircle1-" + d.instanceId)
-              .attr("r", 5)
-              .attr("cx", function () {
-                if (globalThis.window.innerWidth / 12 < 190) {
-                  return (190 / 2) + + globalThis.window.innerWidth / 293 - 20
-                }
-                return (globalThis.window.innerWidth / 12) / 2 - 20
-              })
-              .attr("cy", function (d) {
-                if (!d.logic.isTypeOf(NodeType.trafo)) {
-                  return globalThis.window.innerHeight / 5 - 8
-                } else {
-                  return 130 - 8
-                }
-              })
-              .attr("fill", "black")
-              .classed("circleGroup", true)
-
-            let pageCircle2 = nodeLabel
-              .append("circle")
-              .attr("id", d => "pageCircle2-" + d.instanceId)
-              .attr("r", 5)
-              .attr("cx", function () {
-                if (globalThis.window.innerWidth / 12 < 190) {
-                  return (190 / 2) + + globalThis.window.innerWidth / 293
-                }
-                return (globalThis.window.innerWidth / 12) / 2
-              })
-              .attr("cy", function (d) {
-                if (!d.logic.isTypeOf(NodeType.trafo)) {
-                  return 280 - 8
-                } else {
-                  return 80 - 8
-                }
-              })
-              .attr("fill", "#8e968d")
-              .classed("circleGroup", true)
-
-            let pageCircle3 = nodeLabel
-              .append("circle")
-              .attr("id", d => "pageCircle3-" + d.instanceId)
-              .attr("r", 5)
-              .attr("cx", function () {
-                if (globalThis.window.innerWidth / 12 < 190) {
-                  return (190 / 2) + + globalThis.window.innerWidth / 293 + 20
-                }
-                return (globalThis.window.innerWidth / 12) / 2 + 20
-              })
-              .attr("cy", function (d) {
-                if (!d.logic.isTypeOf(NodeType.trafo)) {
-                  return 280 - 8
-                } else {
-                  return 80 - 8
-                }
-              })
-              .attr("fill", "#8e968d")
-              .classed("circleGroup", true)
-
-            let closeWindow = nodeLabel
-              .append("circle")
-              .attr("id", d => "closeWindow-" + d.instanceId)
-              .classed("closeWindow", true)
-              .attr("r", function (d) {
-                return globalThis.window.innerWidth / 293
-              })
-              .attr("cx", function (d) {
-                if ((globalThis.window.innerWidth / 12) < 190) {
-                  return 190 - (globalThis.window.innerWidth / 250)
-                }
-                return globalThis.window.innerWidth / 12 - (globalThis.window.innerWidth / 293)
-              })
-              .attr("cy", function () {
-                return (globalThis.window.innerWidth / 293)
-              })
-              .attr("fill", "red")
-              .on("click", function (d) {
-                deleteNode(d.srcElement.__data__)
-              })
-            //.attr("cx", 513)
-            let closeWindowText = nodeLabel
-              .append("text")
-              .attr("id", d => "closeWindowText-" + d.instanceId)
-              .classed("closeWindowText", true)
-              .attr("x", function (d) {
-                if ((globalThis.window.innerWidth / 12) < 190) {
-                  return (190 - (globalThis.window.innerWidth / 172))
-                }
-                return globalThis.window.innerWidth / 12.5 - (globalThis.window.innerWidth / 293) / 1.5
-              })
-              .attr("y", function () {
-                return (globalThis.window.innerWidth / 180)
-              })
-              .classed("invisible", false)
-              .attr("fill", "white")
-              .attr("font-size", function () {
-                return (globalThis.window.innerWidth / 160) + "px"
-              })
-              .text("X")
-              .on("click", function (d) {
-                deleteNode(d.srcElement.__data__)
-              })
 
             labelRect.select(d => {
               if (d.logic.isTypeOf(NodeType.smart)) {
@@ -791,36 +664,11 @@
 
             update.select((d) => {
               d3.selectAll(".circleGroup").classed("invisible", true)
-              if (d.page == 0) {
-                let x = wrapTextArray(d.agentID, (globalThis.window.innerWidth / 11) * 0.11 - 19)
-                d3.select("#labelRect-" + d.instanceId)
-                  .attr("width", function () {
-                    if ((globalThis.window.innerWidth / 12) < 190) {
-                      return 190 + globalThis.window.innerWidth / 293
-                    }
-                    return globalThis.window.innerWidth / 12
-                  })
-                  .attr("height", function () {
-                    if ((globalThis.window.innerHeight / 24) < 40) {
-                      return 40
-                    }
-                    return globalThis.window.innerHeight / 24
-                  })
-                d3.select("#text-" + d.instanceId).selectAll("tspan").remove()
-                changeDots(d, d.page)
-                d3.select("#diagram-" + d.instanceId).classed("invisible", true)
-                d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
-              }
+
               if (d.page == 1) {
                 if (d3.selectAll(".agentView")) {
                   d3.selectAll(".agentView-" + d.instanceId).remove()
                 }
-                d3.select("#labelRect-" + d.instanceId).attr("width", globalThis.window.innerWidth / 4.2)
-                d3.select("#labelRect-" + d.instanceId).attr("height", globalThis.window.innerHeight / 12 + 130)
-                d3.select("#text-" + d.instanceId).select(d => {
-                  toMultilineText(d3.select("#text-" + d.instanceId), d.description, d3.select("#labelRect-" + d.instanceId).attr("width") * 0.11 - 19, "text-base font-normal", 15)
-                })
-                changeDots(d, d.page)
                 if (nodeManager.isNodeActive("trafo_d3")) {
                   d3.select("#diagram-" + d.instanceId).classed("invisible", false)
                   d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", true)
@@ -852,6 +700,39 @@
                   }
                 }
               }
+              let manipulatedAgents
+              if (scenario.getAttackScenario() == 1) {
+                try {
+                  for (let value of currentConfiguration.entries()) {
+                    for (let i = 0; i < value[1].length; i++) {
+                      if (parseInt(value[1][i]) === 15) {
+                        d3.select("#labelRect-" + value[0]).style("fill", "red")
+                        break
+                      } else {
+                        d3.select("#labelRect-" + value[0]).style("fill", "grey")
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.log(error)
+                }
+              }
+
+              if (scenario.getAttackScenario() == 1 && scenario.getCurrentStep() !== -1) {
+
+                let nodes = nodeManager.getActiveInstances()
+                for (let o = 0; o < nodes.length; o++) {
+                  console.log(currentConfiguration.has(1519))
+                  console.log(nodes[o].instanceId)
+                  if (!currentConfiguration.has(nodes[o].instanceId)) {
+                    console.log("in")
+                    d3.select("#labelRect-" + nodes[o].instanceId).style("fill", "grey")
+                  }
+                }
+              }
+
+
+
               if (currentStep !== -1) {
                 let currentSender = currentCommunication[0].sourceRef
                 let receivers = []
@@ -900,6 +781,21 @@
 
       d3.select("#infobox-ems")
         .classed("invisible", (nodeManager.isNodeActive("trafo_d3") && nodeManager.isNodeActive("qems")))
+    }
+
+    function checkForManipulatedData(currentConfiguration) {
+      try {
+        console.log(this.manipulatedData)
+        for (let [keyCurrent, valueCurrent] of currentConfiguration) {
+          for (let [keyMani, valueMani] of manipulatedData) {
+            if (keyCurrent == keyMani) {
+              console.log("hallo")
+            }
+          }
+        }
+      } catch (error) {
+        console.log(error)
+      }
     }
 
     function createAgentView(window, instanceId, data, keys, contentRow) {
@@ -1118,150 +1014,6 @@
           //delete AgentViewContainer
         }
       }
-    }
-
-    function changeDots(d, page) {
-
-      d3.select("#pageCircle1-" + d.instanceId)
-        .attr("fill", function (d) {
-          switch (d.page) {
-            case 0:
-              return "black"
-              break
-            case 1:
-            case 2:
-              return "#8e968d"
-              break
-          }
-        })
-        .attr("cx", function (d) {
-          switch (d.page) {
-            case 0:
-              if ((globalThis.window.innerWidth / 12) < 190) {
-                return (190 / 2) + globalThis.window.innerWidth / 293 - 20
-              }
-              return (globalThis.window.innerWidth / 12) / 2 - 20
-              break
-            case 1:
-            case 2:
-              if ((globalThis.window.innerWidth / 4.2) < 190) {
-                return 190 + globalThis.window.innerWidth / 293 - 20
-              }
-              return (globalThis.window.innerWidth / 4.2) / 2 - 20
-              break
-          }
-        })
-
-      d3.select("#pageCircle2-" + d.instanceId)
-        .attr("fill", function (d) {
-          switch (d.page) {
-            case 0:
-            case 2:
-              return "#8e968d"
-              break
-            case 1:
-              return "black"
-              break
-          }
-        })
-        .attr("cx", function (d) {
-          switch (d.page) {
-            case 0:
-              if ((globalThis.window.innerWidth / 12) < 190) {
-                return (190 / 2) + globalThis.window.innerWidth / 293
-              }
-              return (globalThis.window.innerWidth / 12) / 2
-              break
-            case 1:
-            case 2:
-              if ((globalThis.window.innerWidth / 4.2) < 190) {
-                return 190 + globalThis.window.innerWidth / 293
-              }
-              return (globalThis.window.innerWidth / 4.2) / 2
-              break
-          }
-        })
-
-      d3.select("#pageCircle3-" + d.instanceId)
-        .attr("fill", function (d) {
-          switch (d.page) {
-            case 0:
-            case 1:
-              return "#8e968d"
-              break
-            case 2:
-              return "black"
-              break
-          }
-        })
-        .attr("cx", function (d) {
-          switch (d.page) {
-            case 0:
-              if ((globalThis.window.innerWidth / 12) < 190) {
-                return (190 / 2) + globalThis.window.innerWidth / 293 + 20
-              }
-              return (globalThis.window.innerWidth / 12) / 2 + 20
-              break
-            case 1:
-            case 2:
-              if ((globalThis.window.innerWidth / 4.2) < 190) {
-                return 190 + globalThis.window.innerWidth / 293 + 20
-              }
-              return (globalThis.window.innerWidth / 4.2) / 2 + 20
-              break
-          }
-        })
-
-      d3.select("#closeWindow-" + d.instanceId)
-        .attr("cx", function (d) {
-          switch (d.page) {
-            case 0:
-              if ((globalThis.window.innerWidth / 12) < 190) {
-                return 190 - (globalThis.window.innerWidth / 250)
-              }
-              return globalThis.window.innerWidth / 12 - (globalThis.window.innerWidth / 293)
-              break
-            case 1:
-            case 2:
-              if ((globalThis.window.innerWidth / 4.222) < 190) {
-                return 190 - (globalThis.window.innerWidth / 250)
-              }
-              return globalThis.window.innerWidth / 4.222 - (globalThis.window.innerWidth / 293)
-              break
-          }
-        })
-        .attr("r", function (d) {
-          switch (d.page) {
-            case 0:
-              return globalThis.window.innerWidth / 293
-              break
-            case 1:
-            case 2:
-              return globalThis.window.innerWidth / 230
-              break
-          }
-        })
-
-
-      d3.select("#closeWindowText-" + d.instanceId).attr("x", function (d) {
-        switch (d.page) {
-          case 0:
-            if ((globalThis.window.innerWidth / 12) < 190) {
-              return (190 - (globalThis.window.innerWidth / 172))
-            }
-            return globalThis.window.innerWidth / 12.5 - (globalThis.window.innerWidth / 293) / 1.5
-            break
-          case 1:
-          case 2:
-            if ((globalThis.window.innerWidth / 4.222) < 190) {
-              return 190 - (globalThis.window.innerWidth / 172)
-            }
-            return globalThis.window.innerWidth / 4.222 - (globalThis.window.innerWidth / 293) / 0.65
-            break
-        }
-      })
-
-
     }
 
     function updateLabelClasses() {

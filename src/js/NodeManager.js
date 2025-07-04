@@ -447,8 +447,6 @@ export class NodeManager {
     }
 
     initiateSimulation(attack) {
-        console.log(this.simulation)
-        console.log(this.simulation.get(attack))
         this.simulation = this.simulation.get(attack)
         let agents = new Array()
         let neighbours = new Map()
@@ -466,8 +464,6 @@ export class NodeManager {
             this.addnewNode("pv_system", agent)
         })
 
-        console.log(this.instances)
-        
         for (let i = 0; i < Object.keys(this.simulation).length; i++) {
             if (!neighbours.has(this.simulation[Object.keys(this.simulation)[i]].sender)) {
                 //neighbours.set(this.simulation[Object.keys(this.simulation)[i]].sender, this.simulation[Object.keys(this.simulation)[i]].receivers)
@@ -477,7 +473,7 @@ export class NodeManager {
                     receiv.push(Array.from(this.instances.values()).filter(agent => agent.agentID === this.simulation[Object.keys(this.simulation)[i]].receivers[l])[0])
                 }
                 neighbours.set(instanceId.instanceId, receiv)
-            } else{
+            } else {
                 for (let z = 0; z < neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).length; z++) {
                     if (!neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).includes(this.simulation[Object.keys(this.simulation)[i]].receivers[z])) {
                         neighbours.get(this.simulation[Object.keys(this.simulation)[i]].sender).push(this.simulation[Object.keys(this.simulation)[i]].receivers[z])
@@ -485,12 +481,10 @@ export class NodeManager {
                 }
             }
         }
-        console.log(neighbours)
-        console.log(this.instances)
-        if(Array.from(neighbours).length !== Array.from(this.instances.keys()).length){
-            console.log("Falllllllllllsch")
-            for(let g = 0; g < Array.from(this.instances.keys()).length; g++){
-                if(!neighbours.has(Array.from(this.instances.keys())[g])){
+
+        if (Array.from(neighbours).length !== Array.from(this.instances.keys()).length) {
+            for (let g = 0; g < Array.from(this.instances.keys()).length; g++) {
+                if (!neighbours.has(Array.from(this.instances.keys())[g])) {
                     neighbours.set(Array.from(this.instances.keys())[g], "No Sender")
                 }
             }
@@ -501,9 +495,9 @@ export class NodeManager {
                 if (j.agentID == agents[i]) {
                     j.x = 0
                     j.y = 0
-                    j.name ="Agent " + agents[i].split(/(?<=\D)(?=\d)/)[1]
+                    j.name = "Agent " + agents[i].split(/(?<=\D)(?=\d)/)[1]
                     j.agentView = "Dies ist der Platz für die Agentenview zu dem jeweiligen Zeitschritt"
-                    j.page = 0
+                    j.page = 1
                     j.neighbours = neighbours.get(j.instanceId)
                     numberAdded++
                     this.updateNode(j)
@@ -552,7 +546,6 @@ export class NodeManager {
         let alreadyPlacedNodes = new Map
         let activeInstanceID = Array.from(this.instances.keys())
         let activeInstaceValue = Array.from(this.instances.values())
-        console.log(activeInstaceValue)
         let instances = Array.from(this.instances)
         exisitingPositions.set(0, [196, 197])
         exisitingPositions.set(1, [200, globalThis.window.innerHeight - 295])
@@ -611,7 +604,6 @@ export class NodeManager {
             node.y = array[g][1][1]
             this.updateNode(node)
         }
-        console.log(this.instances)
     }
 
     getHighestGap(exisitingPositions) {

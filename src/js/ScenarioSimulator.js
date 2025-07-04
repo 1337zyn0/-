@@ -44,8 +44,10 @@ export class ScenarioSimulator {
         this.simulationPerformance = []
         this.currentState = []
         this.currentDiff = []
+        this.manipulated = []
         this.inSimulation = false
         this.simulationSteps = 0
+        this.attackScenario = -1
         this._activeNodes
         this.allConfig = new Map
     }
@@ -187,11 +189,29 @@ export class ScenarioSimulator {
         return this.currentState[this._step]
     }
 
-    initiateSimulation(attack) {
-        this.inSimulation = true
-        this._simulationData = this._simulationData.get(attack)
-        this._scenarioStepAmount = Object.keys(this._simulationData).length
-        this._step = -1
+    getManipulated() {
+        return this.manipulated
+    }
+
+    getCurrentConfiguration() {
+        return this.allConfig.get(this._step)
+    }
+
+    getCurrentDiff() {
+        return this.currentDiff[this._step]
+    }
+
+    getAllPerformance(i) {
+        if (i == 0) {
+            return this.simulationPerformance[this._step]
+        }
+        if (i == 1) {
+            return this.simulationPerformance
+        }
+    }
+
+    getAttackScenario(){
+        return this.attackScenario
     }
 
     getCurrentCommunicationLinks() {
@@ -211,8 +231,8 @@ export class ScenarioSimulator {
                     }
                 }
                 if (this.allConfig.size === 0) {
-                    this.generateConfiguration()
                     this.generateAllAgentStatistics()
+                    this.generateConfiguration()
                 }
                 return links
             } else {
@@ -236,21 +256,12 @@ export class ScenarioSimulator {
         }
     }
 
-    getCurrentConfiguration() {
-        return this.allConfig.get(this._step)
-    }
-
-    getCurrentDiff() {
-        return this.currentDiff[this._step]
-    }
-
-    getAllPerformance(i){
-        if(i == 0){
-            return this.simulationPerformance[this._step]
-        }
-        if(i == 1){
-            return this.simulationPerformance
-        }
+    initiateSimulation(attack) {
+        this.inSimulation = true
+        this._simulationData = this._simulationData.get(attack)
+        this._scenarioStepAmount = Object.keys(this._simulationData).length
+        this._step = -1
+        this.attackScenario = attack
     }
 
     stepBack() {
@@ -355,7 +366,14 @@ export class ScenarioSimulator {
             this.allConfig.set(z, saveConfig)
         }
 
-        console.log(this.allConfig)
+        for (let q = 0; q < Object.entries(this._simulationData).length; q++) {
+            let currentSimulationStep = Object.values(this._simulationData)[q]
+            if (currentSimulationStep.manipulation == true) {
+                this.manipulated[q] = currentSimulationStep.solution_candidate
+            } else {
+                this.manipulated[q] = currentSimulationStep.manipulation
+            }
+        }
     }
 
     generateAllAgentStatistics() {
@@ -364,7 +382,7 @@ export class ScenarioSimulator {
                 this.targetValue[i] = Object.values(this._simulationData)[0].target_parameters[0][i]
             }
         }
-        
+
         for (let a = 0; a < Object.keys(this._simulationData).length; a++) { // simulationsschritt
             //console.log(Object.values(this._simulationData)[a].solution_candidate)
             let values = []
@@ -380,11 +398,11 @@ export class ScenarioSimulator {
             this.currentState[a] = values
         }
 
-        if(this.simulationPerformance.length === 0){
+        if (this.simulationPerformance.length === 0) {
             this.simulationPerformance.push([Object.values(this._simulationData)[0].performance])
-            for(let k = 1; k < Object.entries(this._simulationData).length; k++){
+            for (let k = 1; k < Object.entries(this._simulationData).length; k++) {
                 let simulation = Object.values(this._simulationData)[k].performance
-                let asdf = this.simulationPerformance.at(k-1)
+                let asdf = this.simulationPerformance.at(k - 1)
                 let newPerf = [...asdf, simulation]
                 this.simulationPerformance.push(newPerf)
             }
