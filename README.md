@@ -1,3 +1,6 @@
+Abschlussarbeit von Jan Heine an der Carl von Ossietzky Universität Oldenburg
+Sie beschäftigt sich mit der Erweiterung des untenstehenden Microgrid-Demonstrator´s 
+
 # Interaktiver Industrie-Microgrid-Demonstrator
 Der interaktive Microgrid-Demonstrator zeigt ein Szenario um ein typisches mittelständisches Industrieareal mit diversen Energieanlagen --
 im Sinne von Verbrauchern und Erzeugern. Er soll dabei unterstützen den Transfer vom klassischen zum transparenten Energienetz greifbar zu machen, der
