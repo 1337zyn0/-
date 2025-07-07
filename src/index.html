@@ -62,6 +62,7 @@
     var inSimulation = false
     let currentStep = -1
     let manipulatedData = {}
+    let dragged = false
 
     const config = {
       energy_device_power: [],
@@ -258,7 +259,7 @@
     }
 
     function draggedNode(event, d) {
-      d3.select(this)
+      d3.select(this.parentNode)
         .attr("transform", d => `translate(${event.x}, ${event.y})`)
     }
 
@@ -418,10 +419,6 @@
               .attr("id", d => d.id)
               .classed("node", true)
               .attr("transform", d => `translate(${d.x}, ${d.y})`)
-              .call(d3.drag()
-                .on("start", dragNodeStarted)
-                .on("drag", draggedNode)
-                .on("end", dragNodeEnded))
 
             let nodeTypeDependantContent = nodeGroup
               .select(function (d) {
@@ -433,6 +430,10 @@
               .attr("r", 20)
               .attr('class', d => `fill-[${d.color}]`)
               .classed('stroke-2 stroke-black', true)
+              .call(d3.drag()
+                .on("start", dragNodeStarted)
+                .on("drag", draggedNode)
+                .on("end", dragNodeEnded))
 
             let nodeCircleText = nodeGroup
               .append("text")
@@ -440,6 +441,10 @@
               .attr("dy", 5)
               .classed('font-mono fill-black text-xs', true)
               .text(d => d.short_label)
+              .call(d3.drag()
+                .on("start", dragNodeStarted)
+                .on("drag", draggedNode)
+                .on("end", dragNodeEnded))
 
             let nodeLabel = nodeGroup
               .append("g")
@@ -475,34 +480,6 @@
               .attr("id", d => "labelRect-" + d.instanceId)
               .classed("nodeLabel", true)
               .attr('rx', '3')
-              .call(d3.drag()
-                .on("start", function (event) {
-                  startX = event.x
-                })
-                .on("end", function (event, d) {
-                  if (startX > event.x) {
-                    switch (d.page) {
-                      case 1:
-                        d.page = 2
-                        let currentConfiguration = scenario.getCurrentConfiguration()
-                        console.log(currentConfiguration.get(d.instanceId))
-                        if (currentConfiguration !== undefined) {
-                          createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
-                        }
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
-                    }
-                  } else if (startX < event.x) {
-                    switch (d.page) {
-                      case 2:
-                        d.page = 1
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
-                    }
-                  }
-                }))
               .on("wheel", function (event, d) {
                 if (d.page === 2) {
 
@@ -730,13 +707,9 @@
                   }
                 }
               }
-
-
-
               if (currentStep !== -1) {
                 let currentSender = currentCommunication[0].sourceRef
                 let receivers = []
-                let offset = { x: 0, y: 0 }
                 currentCommunication.forEach((message) => {
                   receivers.push(message.target)
                 })

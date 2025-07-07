@@ -870,7 +870,6 @@ export class SideBarSmall extends GuiElement {
                 .attr("xlink:href", "./images/offis-logo.svg")
                 .on("click", function () {
                     let isDevAreaVisible = !d3.select("#devArea").classed("invisible")
-
                     if (isDevAreaVisible) {
                         d3.select("#devArea")
                             .classed("invisible", true)
@@ -2109,6 +2108,7 @@ export class SideBarSmall extends GuiElement {
         d3.select("#panelHeader").attr("width", 580)
         d3.select("#panelHeader").attr("height", 200)
         d3.select("#parentSvgEntry").attr("width", 650)
+        d3.select("#panelHeaderContent").attr("transform", "translate(-10, 0)")
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
             .append("tspan")
@@ -2117,7 +2117,7 @@ export class SideBarSmall extends GuiElement {
             .attr("y", 20)
             .attr("dy", "1.2em")
             .attr('width', 220)
-            .text("Bachelorabschlussarbeit")
+            .text("Bachelorabschluss-")
 
         panelHeaderContent
             .append("tspan")
@@ -2125,7 +2125,7 @@ export class SideBarSmall extends GuiElement {
             .attr("x", 0)
             .attr("dy", "1.2em")
             .attr('width', 220)
-            .text("von Jan Heine")
+            .text("arbeit von Jan Heine")
 
         let agentStatistics = d3.select("#sideBar")
             .append("g")
@@ -2326,7 +2326,7 @@ export class SideBarSmall extends GuiElement {
             let backScenario = attackSelection
                 .append("g")
                 .attr("id", "forwardDiagramArrow")
-                .attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 200},${(globalThis.window.innerHeight / 6) / 2})`)
+                .attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 350},${(globalThis.window.innerHeight / 6) / 2})`)
                 .style("cursor", "pointer")
                 .style("fill", "#3498db")
                 .style("transition", "fill 0.2s ease-in-out")
@@ -2347,7 +2347,7 @@ export class SideBarSmall extends GuiElement {
             let forwardScenario = attackSelection
                 .append("g")
                 .attr("id", "forwardArrowAttackSelection")
-                .attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 + 200}, ${(globalThis.window.innerHeight / 6) / 2})`)
+                .attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 + 350}, ${(globalThis.window.innerHeight / 6) / 2})`)
                 .style("cursor", "pointer")
                 .style("fill", "#3498db")
                 .style("transition", "fill 0.2s ease-in-out")
@@ -2398,8 +2398,8 @@ export class SideBarSmall extends GuiElement {
                 break
             case 2:
                 text = "performance attack (changed target function)"
-                text = "Zielfunktion manipuliert"
-                d3.select("#currentScenarioG").attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 145}, ${(globalThis.window.innerHeight / 6) / 2 + 5})`)
+                text = "Veränderte Berechnung der Abweichung zur Zielfunktion"
+                d3.select("#currentScenarioG").attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 325}, ${(globalThis.window.innerHeight / 6) / 2 + 5})`)
                 break
             case 3:
                 text = "performance attack (iteratively increased performance)"
@@ -2421,7 +2421,8 @@ export class SideBarSmall extends GuiElement {
                     return String("Agent manipuliert Fahrplan")
                 //, "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
                 case 2:
-                    return String("Zielfunktion manipuliert")
+                    d3.select("#attackScenarioDescription").style("font-size", "15px")
+                    return String("Veränderte Berechnung der Abweichung zur Zielfunktion")
                 //, "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
                 case 3:
                     return String("Manipulation der Performance- funktion")
@@ -2434,7 +2435,8 @@ export class SideBarSmall extends GuiElement {
                 case 1:
                     return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden.", "Die in rot dargestellten Agenten", "arbeiten mit manipulierten Daten"]
                 case 2:
-                    return ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre Fahrpläne", "auf ein falsches Ziel. Achtung: Im Diagramm", "wird die originale Zielfunktion dargestellt."]
+                    d3.select("#infoTextSecondPage").attr("transform", "translate(20,510)")
+                    return ["3. Veränderte Berechnung der Abweichung zur", "Zielfunktion", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Berechnung der", "Differenz zwischen aktuellem Wert zum","Zielfunktionswert verändert. Hier wird", "das Vorzeichen bei der Performanceberechnung", "manipuliert, wodurch es zu einer positiven", "Performance kommen kann. Dadurch wird", "der angepeilte Zielfahrplan überstiegen und", "es wird mehr Energie freigegeben als", "durch Verbraucher benötigt werden(Zielfunktion)"]
                 case 3:
                     return ["4. Iterative Erhöhung der Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten manipuliert", "und iterativ erhöht."]
             }

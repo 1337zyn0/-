@@ -408,64 +408,7 @@ export class ScenarioSimulator {
             }
         }
     }
-    asdf() {
-        let entries = Object.values(this._simulationData)
-        let nodeConfig = []
-
-        if (this.targetValue.length === 0) {
-            for (let i = 0; i < entries[0].target_parameters[0].length; i++) {
-                this.targetValue[i] = entries[0].target_parameters[0][i]
-            }
-        }
-        nodeConfig[0] = entries[0].solution_candidate
-
-        for (let j = 1; j < entries.length; j++) {
-            let previousStep = nodeConfig[j - 1]
-            let currentStep = entries[j].solution_candidate
-            for (let x = 0; x < Object.entries(previousStep).length; x++) {
-                if (currentStep[Object.keys(previousStep)[x]] === undefined) {
-                    currentStep[Object.keys(previousStep)[x]] = Object.values(previousStep)[x]
-
-                } //else {
-                //console.log(Object.keys(previousStep)[x])
-                //console.log(currentStep[Object.keys(previousStep)[x]])
-                //console.log(this.arraysEqual(currentStep[Object.keys(previousStep)[x]], previousStep[Object.keys(previousStep)[x]]))
-                //}
-            }
-            nodeConfig[j] = currentStep
-        }
-
-        for (let u = 0; u < nodeConfig.length; u++) {//zeitschritte 0-24
-            let currentTime = nodeConfig[u]
-            let values = []
-            for (let r = 0; r < 24; r++) {
-                let sum = 0
-                for (let q = 0; q < Object.values(currentTime).length; q++) {
-                    //u = zeitschritt in der Simulation
-                    //r = zeitschritt jedes Agenten in 15 minuten auflösung
-                    //q = agent
-                    sum += Object.values(currentTime)[q][r]
-                }
-                values.push(sum)
-            }
-            this.currentState[u] = values
-        }
-
-        //TODO: erstellen der differenzwerte vom aktuellen simulationsstand zum targetvalue
-
-        for (let p = 0; p < this.currentState.length; p++) {
-            let values = []
-            for (let t = 0; t < 24; t++) {
-                let sum = 0
-                sum = this.targetValue[t] - this.currentState[p][t]
-                values.push(sum)
-            }
-            this.currentDiff[p] = values
-        }
-    }
-
-
-
+    
     calculateLoadsByLatestLinks() {
         let activeNodes = Array.from(Object.entries(this._energyDeviceList).map(([key, device]) => {
             return device
