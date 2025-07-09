@@ -280,6 +280,7 @@ export class ScenarioSimulator {
                 this.updateEnergyDevices()
             }
         }
+        console.log(this._scenarioStepAmount, this._step)
     }
 
     getActiveNodes() {

@@ -34,9 +34,9 @@ class GuiElement {
 }
 
 export class TileIconTextGroup extends GuiElement {
-    constructor(instanceId) {
+    constructor(idClass) {
         super(null)
-        this.instanceId = instanceId
+        this.idClass = idClass
         this.width = 0
         this.height = 0
         this.element = null
@@ -55,8 +55,8 @@ export class TileIconTextGroup extends GuiElement {
     draw() {
         const iconWidth = 10
         const g = d3.select(document.createElementNS("http://www.w3.org/2000/svg", "g"))
-            .attr("id", "tile-" + this.instanceId)
             .attr("transform", d => `translate(${this.x}, ${this.y})`)
+            .classed(`${this.idClass}`, true)
 
         this.element = g
 
@@ -226,7 +226,7 @@ export class DevArea extends GuiElement {
   
                 } else { */
                 switch (i.id) {
-                    case "trafo_classic":
+                    case "trafo_classic": 
                     case "trafo_d3":
                     case "qems":
                     case "forecasts":
@@ -2092,6 +2092,7 @@ export class SideBarSmall extends GuiElement {
     changeToAgentInfoBar() {
         let that = this
         d3.select("#attackScenarioDesc").remove()
+        d3.select("#linkCOHDA").remove()
         d3.select("#infobox-ems").remove()
         d3.select("#infobox-d3").remove()
         //d3.select("#panelStatsClassic").remove()
@@ -2221,9 +2222,8 @@ export class SideBarSmall extends GuiElement {
         d3.select("#infobox-d3").remove()
         d3.selectAll(".panelContent").remove()
         d3.select("#textInfoBox").remove()
-
-        let text0 = ["Folgende Angriffsszenarien können", "gewählt werden:"]
-        let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: LINK"]
+        let text0 = ["Die Basis dieser Optimierung", "bildet die Heuristik COHDA,", "eine verteilte Optimierung", "die durch bestimmte Mechanismen", "schnell zu einer guten Lösung", "kommt. Für weitere Informationen", "über diese Optimierung klicke", "\u00A0", "Folgende Angriffsszenarien können", "gewählt werden:"]
+        let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA)."]
         let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
         let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
         let text4 = ["4. Iterative Erhöhung der", "Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten", "manipuliert und iterativ erhöht."]
@@ -2232,6 +2232,19 @@ export class SideBarSmall extends GuiElement {
             .append("text")
             .attr("id", "attackScenarioDesc")
             .classed('time fill-white text-xl font-bold', true)
+
+        d3.select("#panelStatsClassic")
+            .append("a")
+            .attr("id", "linkCOHDA")
+            .attr("xlink:href", "https://uol.de/f/2/dept/informatik/ag/ui/publications/HLS14b.pdf")
+            .attr("target", "_blank")
+            .attr("transform", "translate(288, 145)")
+            .append("text")
+            .text("hier")
+            .classed("font-bold", true)
+            .attr("font-size", "20px")
+            .attr("fill", "red")
+            .style("cursor", "pointer")
 
         attackScenarioDesc
             .selectAll("tspan")
@@ -2433,10 +2446,10 @@ export class SideBarSmall extends GuiElement {
                 case 0:
                     return ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA).", "Weitere Informationen über diese", "Optimierung finden Sie hier: "]
                 case 1:
-                    return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden.", "Die in rot dargestellten Agenten", "arbeiten mit manipulierten Daten"]
+                    return ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten (Agent 15) manipuliert werden.", "Die in rot dargestellten Agenten", "arbeiten mit manipulierten Daten"]
                 case 2:
                     d3.select("#infoTextSecondPage").attr("transform", "translate(20,510)")
-                    return ["3. Veränderte Berechnung der Abweichung zur", "Zielfunktion", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Berechnung der", "Differenz zwischen aktuellem Wert zum","Zielfunktionswert verändert. Hier wird", "das Vorzeichen bei der Performanceberechnung", "manipuliert, wodurch es zu einer positiven", "Performance kommen kann. Dadurch wird", "der angepeilte Zielfahrplan überstiegen und", "es wird mehr Energie freigegeben als", "durch Verbraucher benötigt werden(Zielfunktion)"]
+                    return ["3. Veränderte Berechnung der Abweichung zur", "Zielfunktion", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Berechnung der", "Differenz zwischen aktuellem Wert zum", "Zielfunktionswert verändert. Hier wird", "das Vorzeichen bei der Performanceberechnung", "manipuliert, wodurch es zu einer positiven", "Performance kommen kann. Dadurch wird", "der angepeilte Zielfahrplan überstiegen und", "es wird mehr Energie freigegeben als", "durch Verbraucher benötigt werden(Zielfunktion)"]
                 case 3:
                     return ["4. Iterative Erhöhung der Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten manipuliert", "und iterativ erhöht."]
             }

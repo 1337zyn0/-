@@ -109,7 +109,6 @@
     }
 
     function start() {
-      console.log(allSims)
       const deviceCsv = new CsvReader(config.energy_device_power_csv)
       deviceCsv.loadCsvFile(parseFile);
 
@@ -468,15 +467,8 @@
 
             let labelRect = nodeLabel
               .append("rect")
-              .attr("width", function (d) {
-                if (globalThis.window.innerWidth / 12 < 190) {
-                  return 190 + globalThis.window.innerWidth / 293
-                }
-                return 250
-              })
-              .attr('height', function (d) {
-                return globalThis.window.innerHeight / 5
-              })
+              .attr("width", 420)
+              .attr('height', 40)
               .attr("id", d => "labelRect-" + d.instanceId)
               .classed("nodeLabel", true)
               .attr('rx', '3')
@@ -511,32 +503,7 @@
               .classed('text-2xl', true)
               .classed("invisible", false)
               .classed("labelText", true)
-              .text(function (d) {
-                return d.name
-              })
-              .call(d3.drag()
-                .on("start", function (event) {
-                  startX = event.x
-                })
-                .on("end", function (event, d) {
-                  if (startX > event.x) {
-                    switch (d.page) {
-                      case 1:
-                        d.page = 2
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
-                    }
-                  } else if (startX < event.x) {
-                    switch (d.page) {
-                      case 2:
-                        d.page = 1
-                        nodeManager.updateNode(d)
-                        updateDiagram()
-                        break
-                    }
-                  }
-                }))
+              .text(function (d) { return d.name })
 
             labelRect.select(d => {
               if (d.logic.isTypeOf(NodeType.smart)) {
@@ -567,14 +534,35 @@
               }
             })
 
-            /* labelText.select(d => {
+            labelText.select(d => {
               toMultilineText(labelText, d.description, labelRect.attr("width") * 0.11 - 19, "text-base font-normal", 15)
-            }) */
+            })
             labelText
               .insert("tspan", ":first-child")
               .text(" ")
               .attr("x", 0)
               .attr("dy", "0.5em")
+
+            nodeLabel.select((d) => {
+              if (d.logic.isTypeOf(NodeType.energyDevice)) {
+                nodeLabel.append((d) => {
+
+                  let tile = new TileIconTextGroup()
+                  tile.idClass = "tile"
+                  tile.width = 150
+                  tile.height = 60
+                  tile.x = labelRect.attr('width') - 160
+                  tile.y = 46
+                  tile.textHead = d.logic.nowInW >= 0 ? "Verbrauch" : "Erzeugung"
+                  tile.textValue = Math.abs(Math.round((d.logic.nowInW / 1000)))
+                  tile.cssValue = "d3-dependant-view"
+                  tile.textUnit = "kW"
+                  tile.iconPath = globalThis.config.ui.icons.bolt
+                  tile.draw()
+                  return tile.element.node()
+                })
+              }
+            })
 
 
             enter.selectAll(".tile-text-head")
@@ -635,84 +623,84 @@
                 //d3.select("#mainSVG").attr("class", "bg-black")
                 d3.selectAll(".closeWindow").remove()
                 d3.selectAll(".closeWindowText").remove()
-              }
-
-            })
-
-            update.select((d) => {
-              d3.selectAll(".circleGroup").classed("invisible", true)
-
-              if (d.page == 1) {
-                if (d3.selectAll(".agentView")) {
-                  d3.selectAll(".agentView-" + d.instanceId).remove()
-                }
-                if (nodeManager.isNodeActive("trafo_d3")) {
-                  d3.select("#diagram-" + d.instanceId).classed("invisible", false)
-                  d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", true)
-                }
-              } else if (d.page == 2) {
-                d3.select("#text-" + d.instanceId).selectAll("tspan").remove()
-                /* if (d3.select("#container-" + d.instanceId)._groups[0][0] === null) {
-                  if (d.agentID) {
-                    d3.selectAll(".agentViewAll").remove()
-                  }
-                } */
-                d3.select("#diagram-" + d.instanceId).classed("invisible", true)
-                d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
+                d3.selectAll(".tile").remove()
+                d3.selectAll(".nodeLabel").attr("width", 300)
+                d3.selectAll(".labelText").selectAll("tspan").remove()
               }
             })
 
             update.select((d) => {
-              if (currentStep !== scenario.step) {
-                d3.selectAll(".agentViewAll").remove()
-                nodeManager.setAllPagesToZero()
-                currentStep = scenario.step
-              }
-              let currentCommunication = scenario.getCurrentCommunicationLinks()
-              let currentConfiguration = scenario.getCurrentConfiguration()
-              if (scenario.getCurrentStep() !== -1) {
-                if (currentConfiguration !== undefined && currentConfiguration.get(d.instanceId)) {
-                  if (currentCommunication.find(node => node.sourceRef.instanceId === d.instanceId) || currentCommunication.find(node => node.targetRef.instanceId === d.instanceId)) {
-                    createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
+              if (inSimulation) {
+                if (d.page == 1) {
+                  if (d3.selectAll(".agentView")) {
+                    d3.selectAll(".agentView-" + d.instanceId).remove()
                   }
+                  if (nodeManager.isNodeActive("trafo_d3")) {
+                    d3.select("#diagram-" + d.instanceId).classed("invisible", false)
+                    d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", true)
+                  }
+                } else if (d.page == 2) {
+                  d3.select("#text-" + d.instanceId).selectAll("tspan").remove()
+                  d3.select("#diagram-" + d.instanceId).classed("invisible", true)
+                  d3.select("#diagram-" + d.instanceId).classed("diagram d3-dependant-view", false)
                 }
               }
-              let manipulatedAgents
-              if (scenario.getAttackScenario() == 1) {
-                try {
-                  for (let value of currentConfiguration.entries()) {
-                    for (let i = 0; i < value[1].length; i++) {
-                      if (parseInt(value[1][i]) === 15) {
-                        d3.select("#labelRect-" + value[0]).style("fill", "red")
-                        break
-                      } else {
-                        d3.select("#labelRect-" + value[0]).style("fill", "grey")
-                      }
+            })
+
+            update.select((d) => {
+              if (inSimulation) {
+                if (currentStep !== scenario.step) {
+                  d3.selectAll(".agentViewAll").remove()
+                  nodeManager.setAllPagesToZero()
+                  currentStep = scenario.step
+                }
+                let currentCommunication = scenario.getCurrentCommunicationLinks()
+                let currentConfiguration = scenario.getCurrentConfiguration()
+                if (scenario.getCurrentStep() !== -1) {
+                  if (currentConfiguration !== undefined && currentConfiguration.get(d.instanceId)) {
+                    if (currentCommunication.find(node => node.sourceRef.instanceId === d.instanceId) || currentCommunication.find(node => node.targetRef.instanceId === d.instanceId)) {
+                      createAgentView(d3.select("#nodeLabel-" + d.instanceId), d.instanceId, Object.fromEntries(currentConfiguration.get(d.instanceId)), true, null)
                     }
                   }
-                } catch (error) {
-                  console.log(error)
                 }
-              }
-
-              if (scenario.getAttackScenario() == 1 && scenario.getCurrentStep() !== -1) {
-
-                let nodes = nodeManager.getActiveInstances()
-                for (let o = 0; o < nodes.length; o++) {
-                  console.log(currentConfiguration.has(1519))
-                  console.log(nodes[o].instanceId)
-                  if (!currentConfiguration.has(nodes[o].instanceId)) {
-                    console.log("in")
-                    d3.select("#labelRect-" + nodes[o].instanceId).style("fill", "grey")
+                let manipulatedAgents
+                if (scenario.getAttackScenario() == 1) {
+                  try {
+                    for (let value of currentConfiguration.entries()) {
+                      for (let i = 0; i < value[1].length; i++) {
+                        if (parseInt(value[1][i]) === 15) {
+                          d3.select("#labelRect-" + value[0]).style("fill", "red")
+                          break
+                        } else {
+                          d3.select("#labelRect-" + value[0]).style("fill", "grey")
+                        }
+                      }
+                    }
+                  } catch (error) {
+                    console.log(error)
                   }
                 }
-              }
-              if (currentStep !== -1) {
-                let currentSender = currentCommunication[0].sourceRef
-                let receivers = []
-                currentCommunication.forEach((message) => {
-                  receivers.push(message.target)
-                })
+
+                if (scenario.getAttackScenario() == 1 && scenario.getCurrentStep() !== -1) {
+
+                  let nodes = nodeManager.getActiveInstances()
+                  for (let o = 0; o < nodes.length; o++) {
+                    console.log(currentConfiguration.has(1519))
+                    console.log(nodes[o].instanceId)
+                    if (!currentConfiguration.has(nodes[o].instanceId)) {
+                      console.log("in")
+                      d3.select("#labelRect-" + nodes[o].instanceId).style("fill", "grey")
+                    }
+                  }
+                }
+
+                if (currentStep !== -1) {
+                  let currentSender = currentCommunication[0].sourceRef
+                  let receivers = []
+                  currentCommunication.forEach((message) => {
+                    receivers.push(message.target)
+                  })
+                }
               }
             })
 
@@ -754,21 +742,6 @@
 
       d3.select("#infobox-ems")
         .classed("invisible", (nodeManager.isNodeActive("trafo_d3") && nodeManager.isNodeActive("qems")))
-    }
-
-    function checkForManipulatedData(currentConfiguration) {
-      try {
-        console.log(this.manipulatedData)
-        for (let [keyCurrent, valueCurrent] of currentConfiguration) {
-          for (let [keyMani, valueMani] of manipulatedData) {
-            if (keyCurrent == keyMani) {
-              console.log("hallo")
-            }
-          }
-        }
-      } catch (error) {
-        console.log(error)
-      }
     }
 
     function createAgentView(window, instanceId, data, keys, contentRow) {
@@ -1015,44 +988,25 @@
 
         d3.selectAll(".labelGroup").filter(".classic").filter(":not(.ui)").select("rect")
           .attr("height", d => {
-            if (!d.logic.isTypeOf(NodeType.trafo)) {
-              if (d.page === 0) {
+            if (inSimulation) {
+              if (d.page === 1) {
                 return 40
               } else if (d.page === 2) {
                 return globalThis.window.innerHeight / 10 + 130
               }
               return globalThis.window.innerHeight / 10 + 120
             } else {
-              if (d.page === 0) {
-                return 40
-              } else if (d.page === 2) {
-                return globalThis.window.innerHeight / 10 + 130
+              if (!d.logic.isTypeOf(NodeType.trafo)) {
+                return 260
               }
-              return globalThis.window.innerHeight / 10
+              return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
             }
-            //return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
           })
 
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_classic_text, false)
           .classed(globalThis.config.ui.classes.node_label_d3_text, true)
 
-        d3.selectAll(".circleGroup").attr("cy", function (d) {
-          if (d.page === 0) {
-            return 40 - 8
-          } else if (d.page === 1 && !d.logic.isTypeOf(NodeType.TrafoD3)) {
-            return globalThis.window.innerHeight / 10 + 120 - 8
-          } else if (d.page === 2 && !d.logic.isTypeOf(NodeType.TrafoD3)) {
-            return globalThis.window.innerHeight / 10 + 130 - 8
-          }
-        })
-
-        /* d3.selectAll(".circleGroup").each(function (d) {
-          if (d.id === "trafo_d3") {
-            d3.select(this).attr("cy", 110)
-            d3.select(this).attr("cy", 110)
-          }
-        }) */
       }
 
       function applyClassicStyle() {
@@ -1062,34 +1016,26 @@
 
         d3.selectAll(".labelGroup").filter(".classic").select("rect")
           .attr("height", d => {
-
-            if (!d.logic.isTypeOf(NodeType.trafo)) {
+            if (inSimulation) {
               if (d.page === 0) {
                 return 40
               } else if (d.page === 2) {
                 return globalThis.window.innerHeight / 10 + 130
               }
               return 120
+            } else {
+              if (!d.logic.isTypeOf(NodeType.trafo)) {
+                return
+              }
+              return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
             }
 
-            return d3.selectAll(".labelGroup").filter(".classic").selectAll("rect").node().getBBox().height
           })
-
 
         d3.selectAll(".labelGroup").filter(".classic").select("text")
           .classed(globalThis.config.ui.classes.node_label_d3_text, false)
           .classed(globalThis.config.ui.classes.node_label_classic_text, true)
 
-        d3.selectAll(".circleGroup").attr("cy", d => {
-          if (!d.logic.isTypeOf(NodeType.trafo)) {
-            if (d.page === 0) {
-              return 40 - 8
-            } else if (d.page === 2) {
-              return globalThis.window.innerHeight / 4 + 130 - 8
-            }
-            return 120 - 8
-          }
-        })
       }
 
       function applyEmsStyle() {
@@ -1102,19 +1048,21 @@
 
       function applyD3DependantContent() {
         d3.selectAll(".d3-dependant-view").classed("invisible", function (d) {
-          try {
-            if (d.page === 0) {
-              return true
-            } else {
+          if (inSimulation) {
+            try {
+              if (d.page === 0) {
+                return true
+              } else {
+                return !nodeManager.isNodeActive("trafo_d3")
+              }
+            } catch (error) {
               return !nodeManager.isNodeActive("trafo_d3")
             }
-          } catch (error) {
+          } else {
             return !nodeManager.isNodeActive("trafo_d3")
           }
         })
-
       }
-      //.classed("invisible", !nodeManager.isNodeActive("trafo_d3"))
 
       function applyD3AndEmsDependantContent() {
         d3.selectAll(".ems-dependant-view")
@@ -1140,6 +1088,8 @@
         }
       }
     }
+
+
 
 
     // Variables
