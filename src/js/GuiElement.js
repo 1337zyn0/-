@@ -2559,7 +2559,7 @@ export class SideBarSmall extends GuiElement {
             .data(timeSteps)
             .enter()
             .append("text")
-            .attr("x", (d, i) => 150 + i * 80)
+            .attr("x", (d, i) => 135 + i * 80)
             .attr("y", 130)
             .attr("fill", "white")
             .attr("font-size", "18px")
