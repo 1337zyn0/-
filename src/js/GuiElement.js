@@ -812,6 +812,7 @@ export class SideBarSmall extends GuiElement {
                     d3.select("#parentSvgEntry").attr("y", panelHeight - panelFooterHeight / 2)
                     d3.select("#panelFooterText").classed("invisible", true)
                     d3.select("#agentStatistics").classed("invisible", true)
+                    d3.select("#newFooterG").classed("invisible", true)
                 } else {
                     d3.select("#panelHeaderREF").classed("invisible", false)
                     d3.select("#panelStatsClassic").classed("invisible", false)
@@ -819,6 +820,7 @@ export class SideBarSmall extends GuiElement {
                     d3.select("#parentSvgEntry").attr("y", 0)
                     d3.select("#panelFooterText").classed("invisible", false)
                     d3.select("#agentStatistics").classed("invisible", false)
+                    d3.select("#newFooterG").classed("invisible", false)
                 }
 
             })
@@ -1387,7 +1389,7 @@ export class SideBarSmall extends GuiElement {
                 .attr("text-anchor", "middle")
                 .attr("font-size", "14px")
                 .classed("fill-white font-bold", true)
-                .text("Performance")
+                .text("Performance*")
 
             agentDiagram2
                 .append("g")
@@ -1730,8 +1732,7 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent").attr("transform", "translate(50, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
                 d3.select("#performanceIndicator").classed("invisible", false)
-
-
+                d3.select("#newFooterG").classed("invisible", false)
 
                 if (this._scenario.step !== -1) {
                     let currentValue = this._scenario.getCurrentSimulationState()
@@ -2074,6 +2075,7 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent2").attr("transform", "translate(25, 500)")
                 d3.select("#performanceIndicator").classed("invisible", true)
                 d3.select("#infiniteText").classed("invisible", true)
+                d3.select("#newFooterG").classed("invisible", true)
 
                 if (d3.select("#loesungskandidatenEinbleden").empty()) {
                     let solutionC = d3.select("#viewSolutionCandidateG")
@@ -2270,9 +2272,28 @@ export class SideBarSmall extends GuiElement {
             .append("path")
             .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
             .attr("transform", `scale(1)`)
+
+        let footer = d3.select("#panelFooter")
+            .append("g")
+            .attr("id", "newFooterG")
+            .attr("transform", "translate(-120, 90)")
+
+        let footertext = footer 
+            .append("text")
+            .attr("fill", "white")
+            .append("tspan")
+            .text("*Performance von")
+
+        footertext
+            .append("tspan")
+            .attr("x", 0)
+            .attr("y", "1em")
+            .text("0 wird angestrebt")
+
     }
 
     showScenarioInfomation() {
+        d3.select("#panelFooterText").remove()
         d3.select("#infobox-ems").remove()
         d3.select("#infobox-d3").remove()
         d3.selectAll(".panelContent").remove()

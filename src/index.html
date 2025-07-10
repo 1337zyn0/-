@@ -651,6 +651,7 @@
                   d3.selectAll(".agentViewAll").remove()
                   nodeManager.setAllPagesToZero()
                   currentStep = scenario.step
+                  d3.selectAll(".agentViewForWardArrow").remove()
                 }
                 let currentCommunication = scenario.getCurrentCommunicationLinks()
                 let currentConfiguration = scenario.getCurrentConfiguration()
@@ -695,6 +696,62 @@
                   currentCommunication.forEach((message) => {
                     receivers.push(message.target)
                   })
+                }
+              }
+            })
+
+            update.select((d) => {
+              let currentCom = scenario.getCurrentCommunicationLinks()
+              let curr = []
+              currentCom.forEach((agent) => {
+                if (!curr.includes(agent.sourceRef.instanceId)) {
+                  curr.push(agent.sourceRef.instanceId)
+                }
+                if (!curr.includes(agent.targetRef.instanceId)) {
+                  curr.push(agent.targetRef.instanceId)
+                }
+              })
+
+              console.log(nodeManager.getActiveInstances())
+              if (d.page == 1) {
+                if (!curr.includes(d.instanceId)) {
+                  let nodeLabel = d3.select("#nodeLabel-" + d.instanceId)
+
+                  let switchToAgentView = nodeLabel
+                    .append("g")
+                    .attr("transform", "translate(270, 60)")
+                    .style("cursor", "pointer")
+                    .style("fill", "#3498db")
+                    .style("transition", "fill 0.2s ease-in-out")
+                    .classed("agentViewForWardArrow", true)
+                    .on("click", function () {
+                      let data = scenario.getCurrentConfiguration().get(d.instanceId)
+                      console.log(d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction") == "forward")
+                      if (data !== undefined) {
+                        if (d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction") == "forward") {
+                          createAgentView(nodeLabel, d.instanceId, Object.fromEntries(data), true, null)
+                          d3.select("#labelRect-" + d.instanceId).attr("height", (globalThis.window.innerHeight / 10 + 130))
+                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M -20 0 L 0 -15 L 0 15 Z")
+                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "backward")
+                        } else {
+                          d3.select("#container-" + d.instanceId).remove()
+                          d3.select("#labelRect-" + d.instanceId).attr("height", 120)
+                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M 20 0 L 0 -15 L 0 15 Z")
+                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "forward")
+                        }
+                      }
+
+                    })
+
+                  switchToAgentView
+                    .append("path")
+                    .attr("id", "agentViewForWardArrow-" + d.instanceId)
+                    .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
+                    .attr("transform", `scale(1)`)
+                    .attr("direction", "forward")
+                    .classed("agentViewForWardArrow", true)
+
+
                 }
               }
             })

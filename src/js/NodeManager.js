@@ -82,9 +82,9 @@ export class NodeManager {
     setAllPagesToZero() {
         let array = Array.from(this.instances.values())
         for (let i = 0; i < Array.from(this.instances.keys()).length; i++) {
-            if (array[i].page !== 0) {
+            if (array[i].page !== 1) {
                 let node = this.instances.get(array[i].instanceId)
-                node.page = 0
+                node.page = 1
                 this.updateNode(node)
             }
         }
