@@ -621,8 +621,6 @@
                 let activeNodes = nodeManager.getPureActiveEnergyDevices()
                 scenario.activeNodes = activeNodes
                 //d3.select("#mainSVG").attr("class", "bg-black")
-                d3.selectAll(".closeWindow").remove()
-                d3.selectAll(".closeWindowText").remove()
                 d3.selectAll(".tile").remove()
                 d3.selectAll(".nodeLabel").attr("width", 300)
                 d3.selectAll(".labelText").selectAll("tspan").remove()
@@ -685,10 +683,7 @@
 
                   let nodes = nodeManager.getActiveInstances()
                   for (let o = 0; o < nodes.length; o++) {
-                    console.log(currentConfiguration.has(1519))
-                    console.log(nodes[o].instanceId)
                     if (!currentConfiguration.has(nodes[o].instanceId)) {
-                      console.log("in")
                       d3.select("#labelRect-" + nodes[o].instanceId).style("fill", "grey")
                     }
                   }

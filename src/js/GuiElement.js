@@ -226,7 +226,7 @@ export class DevArea extends GuiElement {
   
                 } else { */
                 switch (i.id) {
-                    case "trafo_classic": 
+                    case "trafo_classic":
                     case "trafo_d3":
                     case "qems":
                     case "forecasts":
@@ -352,6 +352,7 @@ export class Time extends GuiElement {
                     d3.select(this).attr("fill", "red")
                     d3.select("#pauseButton1").attr("fill", "white")
                     d3.select("#pauseButton2").attr("fill", "white")
+                    d3.selectAll(".solutionCandidate").remove()
                     cycleSimulation()
                 }
             })
@@ -471,6 +472,7 @@ export class Time extends GuiElement {
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
             .on("click", function () {
+                d3.selectAll(".solutionCandidate").remove()
                 that._scenario.stepBack()
                 cbUpdate()
             })
@@ -488,6 +490,7 @@ export class Time extends GuiElement {
             .style("fill", "#3498db")
             .style("transition", "fill 0.2s ease-in-out")
             .on("click", function () {
+                d3.selectAll(".solutionCandidate").remove()
                 that._scenario.stepForward()
                 cbUpdate()
             })
@@ -552,12 +555,11 @@ export class Time extends GuiElement {
                 xPosition = Math.max(80, Math.min(rect.attr("width") - 150, xPosition))
                 let value = Math.round(this.x.invert(xPosition))
                 d3.select("#sliderCircle").attr("cx", this.x(value))
-                d3.select("#conrollPanelTime")
-                    .text(`${ScenarioSimulator.getTimeByStep(value)} Uhr`)
                 d3.select("#controllPanelStep")
-                    .text(`${value} von ${this._scenario.getAllSteps() - 2} Schritten`)
+                    .text(`${value} von ${this._scenario.getAllSteps() - 1} Schritten`)
             })
             .on("end", (event) => {
+                d3.selectAll(".solutionCandidate").remove()
                 d3.select("#sliderCircle").style("cursor", "grab")
                 let xPosition = event.x
                 xPosition = Math.max(80, Math.min(rect.attr("width") - 150, xPosition))
@@ -615,6 +617,7 @@ export class SideBarSmall extends GuiElement {
         this.tuioListener = tuioListener
         this.currentDiagram = 0
         this.attackScenario = -1
+        this.solution_candidate
     }
 
     draw() {
@@ -1290,6 +1293,21 @@ export class SideBarSmall extends GuiElement {
                 .attr("font-size", "20px")
                 .attr("fill", "red")
 
+            let viewSolutionCandidate = dailyStats
+                .append("g")
+                .attr("id", "viewSolutionCandidateG")
+                .attr("transform", "translate(50, 200)")
+                .style("cursor", "pointer")
+
+            viewSolutionCandidate
+                .append("rect")
+                .attr("width", 400)
+                .attr("height", 50)
+                .attr("fill", "blue")
+                .style("cursor", "pointer")
+
+
+
             let infoText = dailyStats
                 .append("text")
                 .attr("id", "infoTextSecondPage")
@@ -1712,325 +1730,332 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent").attr("transform", "translate(50, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
                 d3.select("#performanceIndicator").classed("invisible", false)
+                d3.select("#infiniteText").classed("invisible", false)
+
+                if (this._scenario.step !== -1) {
+                    let currentValue = this._scenario.getCurrentSimulationState()
+                    let targetValue = this._scenario.getTargetValueDiagramData()
+                    let minCurrent = Math.floor((Math.min(...currentValue) / 100)) * 100
+                    let maxCurrent = Math.floor((Math.max(...currentValue) / 100) * 1.1) * 100
+                    let minTarget = Math.floor((Math.min(...targetValue) / 100)) * 100
+                    let maxTarget = Math.floor((Math.max(...targetValue) / 100) * 1.1) * 100
+                    let min = Math.min(minCurrent, minTarget)
+                    let max = Math.max(maxCurrent, maxTarget)
+
+                    if (min < this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([min, this.aYScale.domain()[1]])
+                    } else if (min - 1000 > this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([min, this.aYScale.domain()[1]])
+                    }
+
+                    if (max > this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], max])
+                    } else if (max + 1000 < this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], max])
+                    }
 
 
-                let currentValue = this._scenario.getCurrentSimulationState()
-                let targetValue = this._scenario.getTargetValueDiagramData()
+                    this.aXScale = d3.scaleLinear()
+                        .range([0, 500])
+                        .domain([-1, 25])
 
-                let minCurrent = Math.floor((Math.min(...currentValue) / 100)) * 100
-                let maxCurrent = Math.floor((Math.max(...currentValue) / 100) * 1.1) * 100
-                let minTarget = Math.floor((Math.min(...targetValue) / 100)) * 100
-                let maxTarget = Math.floor((Math.max(...targetValue) / 100) * 1.1) * 100
-                let min = Math.min(minCurrent, minTarget)
-                let max = Math.max(maxCurrent, maxTarget)
-                if (min < this.aYScale.domain()[0]) {
+                    let targetCoordinate = []
+                    let currentCoordinate = []
+
+                    let lineGenerator = d3.line()
+                        .x(d => this.aXScale(d[0]))
+                        .y(d => this.aYScale(d[1]))
+
+                    container
+                        .selectAll(".line.target")
+                        .data([this._scenario.getTargetValueDiagramData()])
+                        .join(
+                            enter => {
+                                enter.each(function (d) {
+                                    d.forEach((val, i) => targetCoordinate[i] = [i, val])
+                                });
+
+                                const g = enter.append("g").attr("class", "line target")
+
+                                g.append("path")
+                                    .datum(targetCoordinate)
+                                    .attr("d", lineGenerator)
+                                    .attr("transform", "translate(50, -60)")
+                                    .attr("fill", "none")
+                                    .attr("stroke", "red")
+
+                                g.selectAll("circle")
+                                    .data(targetCoordinate)
+                                    .join("circle")
+                                    .attr("cx", d => this.aXScale(d[0]))
+                                    .attr("cy", d => this.aYScale(d[1]))
+                                    .attr("transform", "translate(50, -60)")
+                                    .attr("r", 4)
+                                    .attr("fill", "red")
+                            },
+                            update => {
+                                update.each(function (d) {
+                                    d.forEach((val, i) => targetCoordinate[i] = [i, val])
+                                });
+
+                                update.select("path")
+                                    .datum(targetCoordinate)
+                                    .transition()
+                                    .duration(100)
+                                    .attr("d", lineGenerator)
+
+                                update.selectAll("circle")
+                                    .data(targetCoordinate)
+                                    .join(
+                                        enter => enter.append("circle")
+                                            .attr("r", 4)
+                                            .attr("fill", "red"),
+                                        update => update,
+                                        exit => exit.remove()
+                                    )
+                                    .transition()
+                                    .duration(100)
+                                    .attr("cx", d => this.aXScale(d[0]))
+                                    .attr("cy", d => this.aYScale(d[1]))
+                            },
+                            exit => exit.remove()
+                        )
+
+                    container
+                        .selectAll(".line.current")
+                        .data([this._scenario.getCurrentSimulationState()])
+                        .join(
+                            enter => {
+                                try {
+                                    enter.each(function (d) {
+                                        d.forEach((val, i) => currentCoordinate[i] = [i, val])
+                                    })
+                                } catch (error) {
+
+                                }
+
+                                const g = enter.append("g").attr("class", "line current")
+
+                                g.append("path")
+                                    .datum(currentCoordinate)
+                                    .attr("d", lineGenerator)
+                                    .attr("transform", "translate(50, -60)")
+                                    .attr("fill", "none")
+                                    .attr("stroke", "yellow")
+
+                                g.selectAll("circle")
+                                    .data(currentCoordinate)
+                                    .join("circle")
+                                    .attr("cx", d => this.aXScale(d[0]))
+                                    .attr("cy", d => this.aYScale(d[1]))
+                                    .attr("transform", "translate(50, -60)")
+                                    .attr("r", 4)
+                                    .attr("fill", "yellow")
+                            },
+                            update => {
+                                update.each(function (d) {
+                                    d.forEach((val, i) => currentCoordinate[i] = [i, val])
+                                })
+
+                                update.select("path")
+                                    .datum(currentCoordinate)
+                                    .transition()
+                                    .duration(100)
+                                    .attr("d", lineGenerator)
+
+                                update.selectAll("circle")
+                                    .data(currentCoordinate)
+                                    .join(
+                                        enter => enter.append("circle")
+                                            .attr("r", 4)
+                                            .attr("fill", "yellow"),
+                                        update => update,
+                                        exit => exit.remove()
+                                    )
+                                    .transition()
+                                    .duration(100)
+                                    .attr("cx", d => this.aXScale(d[0]))
+                                    .attr("cy", d => this.aYScale(d[1]))
+                            },
+                            exit => exit.remove()
+                        )
+
+                    d3.select("#agentTargetDiagramY")
+                        .call(d3.axisLeft(this.aYScale)
+                            .ticks(10)
+                            .tickFormat(d3.format("d")))
+
+                    d3.select("#agentTargetDiagramY").selectAll(".tick text")
+                        .attr("font-size", "20px")
+
+                    let allPerf = this._scenario.getAllPerformance(1)[this._scenario.getAllSteps() - 1]
+                    let minPerf = Math.floor((Math.min(...allPerf) / 100)) * 100
+                    let maxPerf = Math.floor((Math.max(...allPerf) / 100) * 1.05) * 100
+
+                    if (minPerf < -1e10) {
+                        minPerf = -1e10
+                    }
+
+                    if (maxPerf > 1e10) {
+                        maxPerf = 1e10
+                    }
+                    if (maxPerf < 0) {
+                        maxPerf = Math.max(maxPerf, 0)
+                    }
+
+                    this.aXScale = d3.scaleLinear()
+                        .range([0, 500])
+                        .domain([0, this._scenario.getAllSteps()])
+
                     this.aYScale = d3.scaleLinear()
                         .range([400, 0])
-                        .domain([min, this.aYScale.domain()[1]])
-                } else if (min - 1000 > this.aYScale.domain()[0]) {
-                    this.aYScale = d3.scaleLinear()
-                        .range([400, 0])
-                        .domain([min, this.aYScale.domain()[1]])
-                }
+                        .domain([minPerf, maxPerf])
+                        .clamp(true)
 
-                if (max > this.aYScale.domain()[1]) {
-                    this.aYScale = d3.scaleLinear()
-                        .range([400, 0])
-                        .domain([this.aYScale.domain()[0], max])
-                } else if (max + 1000 < this.aYScale.domain()[1]) {
-                    this.aYScale = d3.scaleLinear()
-                        .range([400, 0])
-                        .domain([this.aYScale.domain()[0], max])
-                }
+                    d3.select("#agentTargetDiagramY2")
+                        .call(d3.axisLeft(this.aYScale)
+                            .ticks(10)
+                            .tickFormat(d3.format("d")))
 
-                this.aXScale = d3.scaleLinear()
-                    .range([0, 500])
-                    .domain([-1, 25])
+                    d3.select("#agentTargetX2")
+                        .call(d3.axisBottom(this.aXScale)
+                            .ticks(30)
+                            .tickFormat(d3.format("d"))
+                            .tickValues(d3.range(0, this._scenario.getAllSteps(), Math.ceil(this._scenario.getAllSteps() / 10))))
 
-                let targetCoordinate = []
-                let currentCoordinate = []
-
-                let lineGenerator = d3.line()
-                    .x(d => this.aXScale(d[0]))
-                    .y(d => this.aYScale(d[1]))
-
-                container
-                    .selectAll(".line.target")
-                    .data([this._scenario.getTargetValueDiagramData()])
-                    .join(
-                        enter => {
-                            enter.each(function (d) {
-                                d.forEach((val, i) => targetCoordinate[i] = [i, val])
-                            });
-
-                            const g = enter.append("g").attr("class", "line target")
-
-                            g.append("path")
-                                .datum(targetCoordinate)
-                                .attr("d", lineGenerator)
-                                .attr("transform", "translate(50, -60)")
-                                .attr("fill", "none")
-                                .attr("stroke", "red")
-
-                            g.selectAll("circle")
-                                .data(targetCoordinate)
-                                .join("circle")
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-                                .attr("transform", "translate(50, -60)")
-                                .attr("r", 4)
-                                .attr("fill", "red")
-                        },
-                        update => {
-                            update.each(function (d) {
-                                d.forEach((val, i) => targetCoordinate[i] = [i, val])
-                            });
-
-                            update.select("path")
-                                .datum(targetCoordinate)
-                                .transition()
-                                .duration(100)
-                                .attr("d", lineGenerator)
-
-                            update.selectAll("circle")
-                                .data(targetCoordinate)
-                                .join(
-                                    enter => enter.append("circle")
-                                        .attr("r", 4)
-                                        .attr("fill", "red"),
-                                    update => update,
-                                    exit => exit.remove()
-                                )
-                                .transition()
-                                .duration(100)
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-                        },
-                        exit => exit.remove()
-                    )
-
-                container
-                    .selectAll(".line.current")
-                    .data([this._scenario.getCurrentSimulationState()])
-                    .join(
-                        enter => {
-                            enter.each(function (d) {
-                                d.forEach((val, i) => currentCoordinate[i] = [i, val]);
-                            });
-
-                            const g = enter.append("g").attr("class", "line current");
-
-                            g.append("path")
-                                .datum(currentCoordinate)
-                                .attr("d", lineGenerator)
-                                .attr("transform", "translate(50, -60)")
-                                .attr("fill", "none")
-                                .attr("stroke", "yellow");
-
-                            g.selectAll("circle")
-                                .data(currentCoordinate)
-                                .join("circle")
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-                                .attr("transform", "translate(50, -60)")
-                                .attr("r", 4)
-                                .attr("fill", "yellow")
-                        },
-                        update => {
-                            update.each(function (d) {
-                                d.forEach((val, i) => currentCoordinate[i] = [i, val])
-                            });
-
-                            update.select("path")
-                                .datum(currentCoordinate)
-                                .transition()
-                                .duration(100)
-                                .attr("d", lineGenerator)
-
-                            update.selectAll("circle")
-                                .data(currentCoordinate)
-                                .join(
-                                    enter => enter.append("circle")
-                                        .attr("r", 4)
-                                        .attr("fill", "yellow"),
-                                    update => update,
-                                    exit => exit.remove()
-                                )
-                                .transition()
-                                .duration(100)
-                                .attr("cx", d => this.aXScale(d[0]))
-                                .attr("cy", d => this.aYScale(d[1]))
-                        },
-                        exit => exit.remove()
-                    );
-                let scale = (max - min) / 10
-
-                d3.select("#agentTargetDiagramY")
-                    .call(d3.axisLeft(this.aYScale)
-                        .ticks(10)
-                        .tickFormat(d3.format("d")))
-                //.tickValues(d3.range(min, max, scale)))
-
-                d3.select("#agentTargetDiagramY").selectAll(".tick text")
-                    .attr("font-size", "20px")
-
-                //d3.selectAll(".agentDiagram").remove()
-
-                let allPerf = this._scenario.getAllPerformance(1)[this._scenario.getAllSteps() - 1]
-                let minPerf = Math.floor((Math.min(...allPerf) / 100)) * 100
-                let maxPerf = Math.floor((Math.max(...allPerf) / 100) * 1.05) * 100
-
-                if (minPerf < -1e10) {
-                    minPerf = -1e10
-                }
-
-                if (maxPerf > 1e10) {
-                    maxPerf = 1e10
-                }
-                if (maxPerf < 0) {
-                    maxPerf = Math.max(maxPerf, 0)
-                }
-
-                this.aXScale = d3.scaleLinear()
-                    .range([0, 500])
-                    .domain([0, this._scenario.getAllSteps()])
-
-                this.aYScale = d3.scaleLinear()
-                    .range([400, 0])
-                    .domain([minPerf, maxPerf])
-                    .clamp(true)
-
-                d3.select("#agentTargetDiagramY2")
-                    .call(d3.axisLeft(this.aYScale)
-                        .ticks(10)
-                        .tickFormat(d3.format("d")))
-
-                d3.select("#agentTargetX2")
-                    .call(d3.axisBottom(this.aXScale)
-                        .ticks(30)
-                        .tickFormat(d3.format("d"))
-                        .tickValues(d3.range(0, this._scenario.getAllSteps(), Math.ceil(this._scenario.getAllSteps() / 10))))
-
-                d3.select("#agentTargetX2").selectAll(".tick text").attr("font-size", "20px")
+                    d3.select("#agentTargetX2").selectAll(".tick text").attr("font-size", "20px")
 
 
-                d3.select("#agentTargetDiagram2")
-                    .append("line")
-                    .attr("x1", 0)
-                    .attr("x2", 500)
-                    .attr("y1", this.aYScale(0))
-                    .attr("y2", this.aYScale(0))
-                    .attr("transform", "translate(50, 420)")
-                    .attr("stroke", "white")
-                    .attr("stroke-width", 1)
+                    d3.select("#agentTargetDiagram2")
+                        .append("line")
+                        .attr("x1", 0)
+                        .attr("x2", 500)
+                        .attr("y1", this.aYScale(0))
+                        .attr("y2", this.aYScale(0))
+                        .attr("transform", "translate(50, 420)")
+                        .attr("stroke", "white")
+                        .attr("stroke-width", 1)
 
 
-                if (maxPerf == 10000000000) {
-                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
-                        .attr("font-size", "2px")
+                    if (maxPerf == 10000000000) {
+                        d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                            .attr("font-size", "2px")
+                    } else {
+                        d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                            .attr("font-size", "18px")
+                    }
+
+                    if (minPerf == -10000000000) {
+                        d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                            .attr("font-size", "2px")
+                    } else {
+                        d3.select("#agentTargetDiagramY2").selectAll(".tick text")
+                            .attr("font-size", "18px")
+                    }
+
+
+                    let self = this
+
+                    let performanceData = this._scenario.getAllPerformance(0)
+                    let performanceCoordinate = performanceData.map((val, i) => [i, val])
+
+                    d3.select("#agentTargetDiagram2")
+                        .selectAll(".line.perfDia")
+                        .data([performanceCoordinate])
+                        .join(
+                            enter => {
+                                const g = enter.append("g")
+                                    .attr("class", "line perfDia")
+
+                                g.append("path")
+                                    .attr("d", d3.line()
+                                        .x(d => self.aXScale(d[0]))
+                                        .y(d => self.aYScale(d[1]))
+                                        (performanceCoordinate))
+                                    .attr("transform", "translate(50, 420)")
+                                    .attr("fill", "none")
+                                    .attr("stroke", "orange")
+
+                                g.selectAll("circle")
+                                    .data(performanceCoordinate)
+                                    .join("circle")
+                                    .attr("cx", d => self.aXScale(d[0]))
+                                    .attr("cy", d => self.aYScale(d[1]))
+                                    .attr("transform", "translate(50, 420)")
+                                    .attr("r", 1)
+                                    .attr("fill", "orange")
+                            },
+
+                            update => {
+                                update.select("path")
+                                    .datum(performanceCoordinate)
+                                    .transition()
+                                    .duration(100)
+                                    .attr("d", d3.line()
+                                        .x(d => self.aXScale(d[0]))
+                                        .y(d => self.aYScale(d[1]))
+                                    )
+
+                                update.selectAll("circle")
+                                    .data(performanceCoordinate)
+                                    .join(
+                                        enter => enter.append("circle")
+                                            .attr("r", 1)
+                                            .attr("fill", "orange")
+                                            .attr("transform", "translate(50, 420)"),
+                                        update => update,
+                                        exit => exit.remove()
+                                    )
+                                    .transition()
+                                    .duration(100)
+                                    .attr("cx", d => self.aXScale(d[0]))
+                                    .attr("cy", d => self.aYScale(d[1]))
+                            },
+
+                            exit => exit.remove()
+                        )
+
+                    if (this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] >= 1e10 || this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] <= -1e10) {
+                        d3.selectAll(".infiniteValue").classed("invisible", false)
+                        d3.select("#infiniteValue").text(this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()])
+                    } else {
+                        d3.selectAll(".infiniteValue").classed("invisible", true)
+                    }
+
+                    let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
+                    if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle1").attr("fill", "red")
+                    } else if (lightIndicatorPerformace < 80000 && lightIndicatorPerformace >= 60000 || lightIndicatorPerformace > -80000 && lightIndicatorPerformace <= -60000) {
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle2").attr("fill", "orange")
+                    } else if (lightIndicatorPerformace < 60000 && lightIndicatorPerformace >= 35000 || lightIndicatorPerformace > -60000 && lightIndicatorPerformace <= -35000) {
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle3").attr("fill", "yellow")
+                    } else if (lightIndicatorPerformace < 35000 && lightIndicatorPerformace >= 10000 || lightIndicatorPerformace > -35000 && lightIndicatorPerformace <= -10000) {
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle4").attr("fill", "lightgreen")
+                    } else if (lightIndicatorPerformace < 10000 && lightIndicatorPerformace >= 0 || lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= -0) {
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle5").attr("fill", "green")
+                    }
                 } else {
-                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
-                        .attr("font-size", "18px")
-                }
-
-                if (minPerf == -10000000000) {
-                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
-                        .attr("font-size", "2px")
-                } else {
-                    d3.select("#agentTargetDiagramY2").selectAll(".tick text")
-                        .attr("font-size", "18px")
-                }
-
-
-                let self = this
-
-                let performanceData = this._scenario.getAllPerformance(0)
-                let performanceCoordinate = performanceData.map((val, i) => [i, val])
-
-                d3.select("#agentTargetDiagram2")
-                    .selectAll(".line.perfDia")
-                    .data([performanceCoordinate])
-                    .join(
-                        enter => {
-                            const g = enter.append("g")
-                                .attr("class", "line perfDia")
-
-                            g.append("path")
-                                .attr("d", d3.line()
-                                    .x(d => self.aXScale(d[0]))
-                                    .y(d => self.aYScale(d[1]))
-                                    (performanceCoordinate))
-                                .attr("transform", "translate(50, 420)")
-                                .attr("fill", "none")
-                                .attr("stroke", "orange")
-
-                            g.selectAll("circle")
-                                .data(performanceCoordinate)
-                                .join("circle")
-                                .attr("cx", d => self.aXScale(d[0]))
-                                .attr("cy", d => self.aYScale(d[1]))
-                                .attr("transform", "translate(50, 420)")
-                                .attr("r", 1)
-                                .attr("fill", "orange")
-                        },
-
-                        update => {
-                            update.select("path")
-                                .datum(performanceCoordinate)
-                                .transition()
-                                .duration(100)
-                                .attr("d", d3.line()
-                                    .x(d => self.aXScale(d[0]))
-                                    .y(d => self.aYScale(d[1]))
-                                )
-
-                            update.selectAll("circle")
-                                .data(performanceCoordinate)
-                                .join(
-                                    enter => enter.append("circle")
-                                        .attr("r", 1)
-                                        .attr("fill", "orange")
-                                        .attr("transform", "translate(50, 420)"),
-                                    update => update,
-                                    exit => exit.remove()
-                                )
-                                .transition()
-                                .duration(100)
-                                .attr("cx", d => self.aXScale(d[0]))
-                                .attr("cy", d => self.aYScale(d[1]))
-                        },
-
-                        exit => exit.remove()
-                    )
-
-                if (this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] >= 1e10 || this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] <= -1e10) {
-                    d3.selectAll(".infiniteValue").classed("invisible", false)
-                    d3.select("#infiniteValue").text(this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()])
-                } else {
-                    d3.selectAll(".infiniteValue").classed("invisible", true)
-                }
-
-                let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
-                if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
-                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
-                    d3.select("#performanceLightCircle1").attr("fill", "red")
-                } else if (lightIndicatorPerformace < 80000 && lightIndicatorPerformace >= 60000 || lightIndicatorPerformace > -80000 && lightIndicatorPerformace <= -60000) {
-                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
-                    d3.select("#performanceLightCircle2").attr("fill", "orange")
-                } else if (lightIndicatorPerformace < 60000 && lightIndicatorPerformace >= 35000 || lightIndicatorPerformace > -60000 && lightIndicatorPerformace <= -35000) {
-                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
-                    d3.select("#performanceLightCircle3").attr("fill", "yellow")
-                } else if (lightIndicatorPerformace < 35000 && lightIndicatorPerformace >= 10000 || lightIndicatorPerformace > -35000 && lightIndicatorPerformace <= -10000) {
-                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
-                    d3.select("#performanceLightCircle4").attr("fill", "lightgreen")
-                } else if (lightIndicatorPerformace < 10000 && lightIndicatorPerformace >= 0 || lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= -0) {
-                    d3.selectAll(".performanceLightCircle").attr("fill", "white")
-                    d3.select("#performanceLightCircle5").attr("fill", "green")
+                    d3.selectAll(".line.current").remove()
+                    d3.selectAll(".line.target").remove()
                 }
 
                 break
             }
             case 1: {
+                let self = this
                 d3.select("#tspanDiagram1").classed("invisible", true)
                 d3.select("#tspanDiagram12").classed("invisible", true)
                 //d3.select("#infobox-agent").classed("invisible", true)
@@ -2043,12 +2068,32 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent").attr("transform", "translate(25, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(25, 500)")
                 d3.select("#performanceIndicator").classed("invisible", true)
+                d3.select("#infiniteText").classed("invisible", true)
 
+                if (d3.select("#loesungskandidatenEinbleden").empty()) {
+                    let solutionC = d3.select("#viewSolutionCandidateG")
+
+                    solutionC
+                        .append("text")
+                        .attr("id", "loesungskandidatenEinbleden")
+                        .attr("transform", "translate (15, 30)")
+                        .attr("fill", "white")
+                        .attr("font-size", "20px")
+                        .style("cursor", "pointer")
+                        .text("Aktuellen Lösungskandidaten einblenden")
+                        .on("click", function () {
+                            d3.selectAll(".solutionCandidate").remove()
+                            self.openSendSolutionCandidate()
+                        })
+                }
 
                 let comm = this._scenario.getCurrentCommunicationLinks()
                 let performance = comm[0].performance
                 let sender = comm[0].source
                 let negoID = comm[0].negotiationID
+                try {
+                    this.solution_candidate = this._scenario.getcurrentSolutionCandidate().solution_candidate
+                } catch (error) { }
                 let receivers = []
                 comm.forEach((target) => {
                     receivers.push(target.target)
@@ -2058,7 +2103,7 @@ export class SideBarSmall extends GuiElement {
                 }
                 d3.select("#tspanSender").text(sender)
                 d3.select("#tspanNegoID").text(negoID)
-                d3.select("#tspanPerformance").text(performance)
+                d3.select("#tspanPerformance").text(parseInt(performance))
 
                 let fullText = this.getCurrentAttackSceanrioText(true)
 
@@ -2072,9 +2117,11 @@ export class SideBarSmall extends GuiElement {
                     .attr("dy", (d, i) => i === 0 ? "0em" : "1.2em")
                     .attr("x", 0)
 
-                if (this.attackScenario == 0) {
+
+                if (this.attackScenario == 0 && d3.select("#COHDAlink").empty()) {
                     d3.select("#panelAgentStatistics")
                         .append("a")
+                        .attr("id", "COHDAlink")
                         .attr("xlink:href", "https://uol.de/f/2/dept/informatik/ag/ui/publications/HLS14b.pdf")
                         .attr("target", "_blank")
                         .attr("transform", "translate(30, 775)")
@@ -2084,9 +2131,12 @@ export class SideBarSmall extends GuiElement {
                         .attr("fill", "red")
                         .style("cursor", "pointer")
                 }
+
+
                 break
             }
         }
+
     }
 
     changeToAgentInfoBar() {
@@ -2314,7 +2364,7 @@ export class SideBarSmall extends GuiElement {
                 .attr("width", 100)
                 .attr("height", 50)
                 .attr("transform", `translate(${(globalThis.window.innerWidth / 3) / 2 - 50}, ${globalThis.window.innerHeight / 6 - 60})`)
-                .attr("fill", "grey")
+                .attr("fill", "blue")
                 .style("cursor", "pointer")
                 .on("click", () => {
                     resolve(scenarioValue)
@@ -2328,6 +2378,7 @@ export class SideBarSmall extends GuiElement {
                 .style("cursor", "pointer")
                 .append("text")
                 .text("Bestätigen")
+                .attr("fill", "white")
                 .style("cursor", "pointer")
                 .on("click", () => {
                     resolve(scenarioValue)
@@ -2395,6 +2446,144 @@ export class SideBarSmall extends GuiElement {
                 .classed("attackWindowSelection", true)
         })
 
+    }
+
+    openSendSolutionCandidate() {
+        let that = this
+        let solCan = d3.select("#mainSVG")
+            .append("g")
+            .attr("transform", function () {
+                let length = Object.entries(that.solution_candidate).length
+                let height = 0
+                if (length < 5) {
+                    height = 300
+                } else if (length >= 5 && length < 10) {
+                    height = 450
+                } else if (length >= 10 && length <= 20) {
+                    height = 600
+                } else {
+                    height = 1200
+                }
+                return `translate(${(globalThis.window.innerWidth) / 2 - 1100}, ${(globalThis.window.innerHeight / 2) - (height / 2)})`
+            })
+            .attr("id", "solutionCandidateG")
+            .classed("solutionCandidate", true)
+
+        solCan
+            .append("rect")
+            .attr("width", 2200)
+            .attr("height", function () {
+                let length = Object.entries(that.solution_candidate).length
+                if (length < 5) {
+                    return 300
+                } else if (length >= 5 && length < 10) {
+                    return 450
+                } else if (length >= 10 && length <= 20) {
+                    return 600
+                } else {
+                    return 1200
+                }
+            })
+            .classed('stroke-0 fill-[#252e42] opacity-95 drop-shadow-lg', true)
+            .classed("solutionCandidate", true)
+
+        solCan
+            .append("circle")
+            .attr("transform", `translate(2170, 30)`)
+            .attr("fill", "red")
+            .attr("r", 20)
+            .on("click", function () {
+                d3.selectAll(".solutionCandidate").remove()
+            })
+
+        solCan
+            .append("text")
+            .attr("transform", `translate(2161, 40)`)
+            .attr("fill", "white")
+            .attr("font-size", "30px")
+            .text("X")
+            .on("click", function () {
+                d3.selectAll(".solutionCandidate").remove()
+            })
+
+        let text = solCan
+            .append("g")
+
+        let array = Object.entries(this.solution_candidate).map(([key, values]) => {
+            let joined = values.map(value => value.toFixed(2).padStart(10, ' '))
+            return `Agent ${key.toString().padStart(5, ' ')} ${joined.join("  ")}`
+        })
+
+        solCan
+            .append("text")
+            .attr("x", 10)
+            .attr("y", 40)
+            .text("Übersicht über den aktuellen Lösungskandidaten")
+            .attr("fill", "white")
+            .attr("font-size", "40px")
+
+        solCan
+            .append("text")
+            .attr("x", 10)
+            .attr("y", 80)
+            .attr("fill", "white")
+            .attr("font-size", "20px")
+            .text("Der Lösungskandidat enthällt die aktuelle Konfiguration, die auf zur Lösung evaluiert wird. Aus der Summe aller Agenten im Lösungskandidaten aufgeführten Agentenbelegungen")
+
+        solCan
+            .append("text")
+            .attr("x", 10)
+            .attr("y", 105)
+            .attr("fill", "white")
+            .attr("font-size", "20px")
+            .text("wird die im Diagram erstellte Performance evaluiert")
+
+        let timeSteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+
+        text.append("text")
+            .attr("x", 10)
+            .attr("y", 130)
+            .attr("fill", "white")
+            .attr("font-size", "18px")
+            .text("Zeitschritt")
+
+
+        text.selectAll(null)
+            .data(timeSteps)
+            .enter()
+            .append("text")
+            .attr("x", (d, i) => 140 + i * 80)
+            .attr("y", 130)
+            .attr("fill", "white")
+            .attr("font-size", "18px")
+            .text(d => d)
+
+        Object.entries(this.solution_candidate).forEach(([agentID, values], row) => {
+            text.append("text")
+                .attr("x", 10)
+                .attr("y", 150 + (row + 1) * 20)
+                .attr("fill", "white")
+                .attr("font-size", "16px")
+                .attr("font-family", "monospace")
+                .text(`Agent ${agentID}: `)
+
+            values.forEach((value, column) => {
+                text
+                    .append("text")
+                    .attr("x", 40 + (column + 1) * 80)
+                    .attr("y", 150 + (row + 1) * 20)
+                    .attr("fill", function () {
+                        if (that.attackScenario === 1 && agentID === '15') {
+                            return "red"
+                        }
+                        return "white"
+                    })
+                    .attr("font-size", "16px")
+                    .attr("font-family", "monospace")
+                    .text(value.toFixed(2))
+
+            })
+        })
     }
 
     async changeScenarioTextSelection(value) {

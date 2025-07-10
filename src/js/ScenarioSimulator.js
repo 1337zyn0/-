@@ -197,6 +197,10 @@ export class ScenarioSimulator {
         return this.allConfig.get(this._step)
     }
 
+    getcurrentSolutionCandidate() {
+        return Object.values(this._simulationData)[this._step]
+    }
+
     getCurrentDiff() {
         return this.currentDiff[this._step]
     }
@@ -210,7 +214,7 @@ export class ScenarioSimulator {
         }
     }
 
-    getAttackScenario(){
+    getAttackScenario() {
         return this.attackScenario
     }
 
@@ -409,7 +413,7 @@ export class ScenarioSimulator {
             }
         }
     }
-    
+
     calculateLoadsByLatestLinks() {
         let activeNodes = Array.from(Object.entries(this._energyDeviceList).map(([key, device]) => {
             return device
