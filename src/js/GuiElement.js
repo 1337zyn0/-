@@ -1730,7 +1730,8 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent").attr("transform", "translate(50, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
                 d3.select("#performanceIndicator").classed("invisible", false)
-                d3.select("#infiniteText").classed("invisible", false)
+
+
 
                 if (this._scenario.step !== -1) {
                     let currentValue = this._scenario.getCurrentSimulationState()
@@ -2023,12 +2024,16 @@ export class SideBarSmall extends GuiElement {
                             exit => exit.remove()
                         )
 
-                    if (this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] >= 1e10 || this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] <= -1e10) {
-                        d3.selectAll(".infiniteValue").classed("invisible", false)
-                        d3.select("#infiniteValue").text(this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()])
-                    } else {
-                        d3.selectAll(".infiniteValue").classed("invisible", true)
+                    if (this._scenario.step !== -1) {
+                        d3.select("#infiniteText").classed("invisible", false)
+                        if (this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] >= 1e10 || this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()] <= -1e10) {
+                            d3.selectAll(".infiniteValue").classed("invisible", false)
+                            d3.select("#infiniteValue").text(this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()])
+                        } else {
+                            d3.selectAll(".infiniteValue").classed("invisible", true)
+                        }
                     }
+
 
                     let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
                     if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
@@ -2082,8 +2087,10 @@ export class SideBarSmall extends GuiElement {
                         .style("cursor", "pointer")
                         .text("Aktuellen Lösungskandidaten einblenden")
                         .on("click", function () {
-                            d3.selectAll(".solutionCandidate").remove()
-                            self.openSendSolutionCandidate()
+                            if (self._scenario.step !== -1) {
+                                d3.selectAll(".solutionCandidate").remove()
+                                self.openSendSolutionCandidate()
+                            }
                         })
                 }
 
@@ -2131,8 +2138,6 @@ export class SideBarSmall extends GuiElement {
                         .attr("fill", "red")
                         .style("cursor", "pointer")
                 }
-
-
                 break
             }
         }
@@ -2480,8 +2485,10 @@ export class SideBarSmall extends GuiElement {
                     return 450
                 } else if (length >= 10 && length <= 20) {
                     return 600
-                } else {
-                    return 1200
+                } else if(length >20 && length <= 30){
+                    return 900
+                }else{
+                    return 1500
                 }
             })
             .classed('stroke-0 fill-[#252e42] opacity-95 drop-shadow-lg', true)
@@ -2528,7 +2535,7 @@ export class SideBarSmall extends GuiElement {
             .attr("y", 80)
             .attr("fill", "white")
             .attr("font-size", "20px")
-            .text("Der Lösungskandidat enthällt die aktuelle Konfiguration, die auf zur Lösung evaluiert wird. Aus der Summe aller Agenten im Lösungskandidaten aufgeführten Agentenbelegungen")
+            .text("Der Lösungskandidat enthällt die aktuelle Konfiguration von Belegungen des Simulationsschritts. Aus der Summe aller Agenten im Lösungskandidaten aufgeführten Agentenbelegungen")
 
         solCan
             .append("text")
@@ -2552,7 +2559,7 @@ export class SideBarSmall extends GuiElement {
             .data(timeSteps)
             .enter()
             .append("text")
-            .attr("x", (d, i) => 140 + i * 80)
+            .attr("x", (d, i) => 150 + i * 80)
             .attr("y", 130)
             .attr("fill", "white")
             .attr("font-size", "18px")
