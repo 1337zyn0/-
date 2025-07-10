@@ -624,6 +624,7 @@
                 d3.selectAll(".tile").remove()
                 d3.selectAll(".nodeLabel").attr("width", 300)
                 d3.selectAll(".labelText").selectAll("tspan").remove()
+                d3.selectAll(".labelText").attr("transform", "translate(100, 0)")
               }
             })
 
@@ -719,7 +720,8 @@
 
                   let switchToAgentView = nodeLabel
                     .append("g")
-                    .attr("transform", "translate(270, 60)")
+                    .attr("transform", "translate(280, 100)")
+                    .attr("id", "switchToAgentViewG-" + d.instanceId)
                     .style("cursor", "pointer")
                     .style("fill", "#3498db")
                     .style("transition", "fill 0.2s ease-in-out")
@@ -733,11 +735,13 @@
                           d3.select("#labelRect-" + d.instanceId).attr("height", (globalThis.window.innerHeight / 10 + 130))
                           d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M -20 0 L 0 -15 L 0 15 Z")
                           d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "backward")
+                          d3.select("#switchToAgentViewG-" + d.instanceId).attr("transform", "translate(295, 280)")
                         } else {
                           d3.select("#container-" + d.instanceId).remove()
                           d3.select("#labelRect-" + d.instanceId).attr("height", 120)
                           d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M 20 0 L 0 -15 L 0 15 Z")
                           d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "forward")
+                          d3.select("#switchToAgentViewG-" + d.instanceId).attr("transform", "translate(280, 100)")
                         }
                       }
 
@@ -747,7 +751,7 @@
                     .append("path")
                     .attr("id", "agentViewForWardArrow-" + d.instanceId)
                     .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
-                    .attr("transform", `scale(1)`)
+                    .attr("transform", `scale(0.75)`)
                     .attr("direction", "forward")
                     .classed("agentViewForWardArrow", true)
 
