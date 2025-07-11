@@ -44,7 +44,6 @@ export class ScenarioSimulator {
         this.simulationPerformance = []
         this.currentState = []
         this.currentDiff = []
-        this.manipulated = []
         this.inSimulation = false
         this.simulationSteps = 0
         this.attackScenario = -1
@@ -189,10 +188,6 @@ export class ScenarioSimulator {
         return this.currentState[this._step]
     }
 
-    getManipulated() {
-        return this.manipulated
-    }
-
     getCurrentConfiguration() {
         return this.allConfig.get(this._step)
     }
@@ -284,7 +279,6 @@ export class ScenarioSimulator {
                 this.updateEnergyDevices()
             }
         }
-        console.log(this._scenarioStepAmount, this._step)
     }
 
     getActiveNodes() {
@@ -370,15 +364,6 @@ export class ScenarioSimulator {
             }
             this.allConfig.set(z, saveConfig)
         }
-
-        for (let q = 0; q < Object.entries(this._simulationData).length; q++) {
-            let currentSimulationStep = Object.values(this._simulationData)[q]
-            if (currentSimulationStep.manipulation == true) {
-                this.manipulated[q] = currentSimulationStep.solution_candidate
-            } else {
-                this.manipulated[q] = currentSimulationStep.manipulation
-            }
-        }
     }
 
     generateAllAgentStatistics() {
@@ -392,7 +377,7 @@ export class ScenarioSimulator {
             //console.log(Object.values(this._simulationData)[a].solution_candidate)
             let values = []
             let solution_candidate = Object.values(Object.values(this._simulationData)[a].solution_candidate)
-            for (let i = 0; i < 24; i++) {//24 zeitschritte eines einzelnen Agenten
+            for (let i = 0; i < solution_candidate[0].length; i++) {//24 zeitschritte eines einzelnen Agenten
                 let sum = 0
                 for (let t = 0; t < solution_candidate.length; t++) { //solutionCandidate im jeweiligen Simulationsschritt
                     //console.log(solution_candidate[t][i])

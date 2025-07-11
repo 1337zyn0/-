@@ -61,8 +61,6 @@
     const nodeManager = new NodeManager()
     var inSimulation = false
     let currentStep = -1
-    let manipulatedData = {}
-    let dragged = false
 
     const config = {
       energy_device_power: [],
@@ -254,7 +252,9 @@
       }
     }
 
-    function dragNodeStarted(event) {
+    let nodeHeight
+    function dragNodeStarted(event, d) {
+      this.nodeHeight = d3.select("#labelRect-" + d.instanceId).attr("height")
     }
 
     function draggedNode(event, d) {
@@ -268,7 +268,8 @@
       tuioObject.instanceId = d.instanceId
       d.x = event.x
       d.y = event.y
-      d3.select("#scrollSVG-" + d.instanceId).attr("x", event.x).attr("y", event.y)
+      //d3.select("#scrollSVG-" + d.instanceId).attr("x", event.x).attr("y", event.y)
+      d3.select("#labelRect-" + d.instanceId).attr("height", this.nodeHeight)
       nodeManager.updateNode(d)
       tuioListener.updateTuioObject(tuioObject)
     }
@@ -672,12 +673,11 @@
                           d3.select("#labelRect-" + value[0]).style("fill", "red")
                           break
                         } else {
-                          d3.select("#labelRect-" + value[0]).style("fill", "grey")
+                          d3.select("#labelRect-" + value[0]).style("fill", null)
                         }
                       }
                     }
                   } catch (error) {
-                    console.log(error)
                   }
                 }
 
@@ -686,7 +686,7 @@
                   let nodes = nodeManager.getActiveInstances()
                   for (let o = 0; o < nodes.length; o++) {
                     if (!currentConfiguration.has(nodes[o].instanceId)) {
-                      d3.select("#labelRect-" + nodes[o].instanceId).style("fill", "grey")
+                      d3.select("#labelRect-" + nodes[o].instanceId).style("fill", null)
                     }
                   }
                 }
@@ -702,60 +702,54 @@
             })
 
             update.select((d) => {
-              let currentCom = scenario.getCurrentCommunicationLinks()
-              let curr = []
-              currentCom.forEach((agent) => {
-                if (!curr.includes(agent.sourceRef.instanceId)) {
-                  curr.push(agent.sourceRef.instanceId)
-                }
-                if (!curr.includes(agent.targetRef.instanceId)) {
-                  curr.push(agent.targetRef.instanceId)
-                }
-              })
+              if (inSimulation && scenario.getCurrentStep() !== -1) {
+                let currentCom = scenario.getCurrentCommunicationLinks()
+                let curr = []
+                currentCom.forEach((agent) => {
+                  if (!curr.includes(agent.sourceRef.instanceId)) {
+                    curr.push(agent.sourceRef.instanceId)
+                  }
+                  if (!curr.includes(agent.targetRef.instanceId)) {
+                    curr.push(agent.targetRef.instanceId)
+                  }
+                })
 
-              console.log(nodeManager.getActiveInstances())
-              if (d.page == 1) {
-                if (!curr.includes(d.instanceId)) {
-                  let nodeLabel = d3.select("#nodeLabel-" + d.instanceId)
+                if (d.page == 1) {
+                  if (!curr.includes(d.instanceId)) {
+                    let nodeLabel = d3.select("#nodeLabel-" + d.instanceId)
 
-                  let switchToAgentView = nodeLabel
-                    .append("g")
-                    .attr("transform", "translate(280, 100)")
-                    .attr("id", "switchToAgentViewG-" + d.instanceId)
-                    .style("cursor", "pointer")
-                    .style("fill", "#3498db")
-                    .style("transition", "fill 0.2s ease-in-out")
-                    .classed("agentViewForWardArrow", true)
-                    .on("click", function () {
-                      let data = scenario.getCurrentConfiguration().get(d.instanceId)
-                      console.log(d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction") == "forward")
-                      if (data !== undefined) {
-                        if (d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction") == "forward") {
-                          createAgentView(nodeLabel, d.instanceId, Object.fromEntries(data), true, null)
-                          d3.select("#labelRect-" + d.instanceId).attr("height", (globalThis.window.innerHeight / 10 + 130))
-                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M -20 0 L 0 -15 L 0 15 Z")
-                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "backward")
-                          d3.select("#switchToAgentViewG-" + d.instanceId).attr("transform", "translate(295, 280)")
-                        } else {
-                          d3.select("#container-" + d.instanceId).remove()
-                          d3.select("#labelRect-" + d.instanceId).attr("height", 120)
-                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("d", "M 20 0 L 0 -15 L 0 15 Z")
-                          d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "forward")
-                          d3.select("#switchToAgentViewG-" + d.instanceId).attr("transform", "translate(280, 100)")
+                    let switchToAgentView = nodeLabel
+                      .append("g")
+                      .attr("transform", "translate(280, 10)")
+                      .attr("id", "switchToAgentViewG-" + d.instanceId)
+                      .style("cursor", "pointer")
+                      .style("fill", "#3498db")
+                      .style("transition", "fill 0.2s ease-in-out")
+                      .classed("agentViewForWardArrow", true)
+                      .on("click", function () {
+                        let data = scenario.getCurrentConfiguration().get(d.instanceId)
+                        if (data !== undefined) {
+                          if (d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction") == "forward") {
+                            createAgentView(nodeLabel, d.instanceId, Object.fromEntries(data), true, null)
+                            d3.select("#labelRect-" + d.instanceId).attr("height", (globalThis.window.innerHeight / 10 + 130))
+                            d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "backward")
+                          } else {
+                            d3.select("#container-" + d.instanceId).remove()
+                            d3.select("#labelRect-" + d.instanceId).attr("height", 40)
+                            d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "forward")
+                          }
                         }
-                      }
 
-                    })
+                      })
 
-                  switchToAgentView
-                    .append("path")
-                    .attr("id", "agentViewForWardArrow-" + d.instanceId)
-                    .attr("d", "M 20 0 L 0 -15 L 0 15 Z")
-                    .attr("transform", `scale(0.75)`)
-                    .attr("direction", "forward")
-                    .classed("agentViewForWardArrow", true)
-
-
+                    switchToAgentView
+                      .append("path")
+                      .attr("id", "agentViewForWardArrow-" + d.instanceId)
+                      .attr("d", "M 0 20 L -15 0 L 15 0 Z")
+                      .attr("transform", `scale(0.75)`)
+                      .attr("direction", "forward")
+                      .classed("agentViewForWardArrow", true)
+                  }
                 }
               }
             })
@@ -1045,7 +1039,7 @@
         d3.selectAll(".labelGroup").filter(".classic").filter(":not(.ui)").select("rect")
           .attr("height", d => {
             if (inSimulation) {
-              if (d.page === 1) {
+              if (d.page == 1) {
                 return 40
               } else if (d.page === 2) {
                 return globalThis.window.innerHeight / 10 + 130
@@ -1073,7 +1067,7 @@
         d3.selectAll(".labelGroup").filter(".classic").select("rect")
           .attr("height", d => {
             if (inSimulation) {
-              if (d.page === 0) {
+              if (d.page === 1) {
                 return 40
               } else if (d.page === 2) {
                 return globalThis.window.innerHeight / 10 + 130

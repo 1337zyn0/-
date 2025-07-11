@@ -758,6 +758,8 @@ export class SideBarSmall extends GuiElement {
 
         let textHeight = Math.ceil(text.length / 55) * 23
 
+        let loadSim = false
+
         const footerButton = panelFooter
             .append("g")
             .attr("transform", d => `translate(${padding}, ${padding + textHeight + 10})`)
@@ -767,17 +769,20 @@ export class SideBarSmall extends GuiElement {
             .attr("fill", "white")
             .style("cursor", "pointer")
             .on("click", async () => {
-                that.showScenarioInfomation()
-                let attack = await this.openAttackWindow()
-                if (attack > -1 && attack < 5) {
-                    that.nodeManager.initiateSimulation(attack)
-                    that._scenario.initiateSimulation(attack)
-                    that.tuioListener.initiateSimulation(globalThis, attack)
-                    that.changeToAgentInfoBar()
-                    that.inSimulation = true
-                    that.attackScenario = attack
-                    toMultilineText(d3.select("#attackScenarioDescription"), this.getCurrentAttackSceanrioText(false), 10)
-                    d3.select("#loadSim").remove()
+                if (!loadSim) {
+                    loadSim = true
+                    that.showScenarioInfomation()
+                    let attack = await this.openAttackWindow()
+                    if (attack > -1 && attack < 5) {
+                        that.nodeManager.initiateSimulation(attack)
+                        that._scenario.initiateSimulation(attack)
+                        that.tuioListener.initiateSimulation(globalThis, attack)
+                        that.changeToAgentInfoBar()
+                        that.inSimulation = true
+                        that.attackScenario = attack
+                        toMultilineText(d3.select("#attackScenarioDescription"), this.getCurrentAttackSceanrioText(false), 10)
+                        d3.select("#loadSim").remove()
+                    }
                 }
             })
 
@@ -1227,6 +1232,7 @@ export class SideBarSmall extends GuiElement {
 
             let commText = dailyStats
                 .append("text")
+                .attr("transform", "translate(0, -40)")
                 .attr("id", "communicationInformationText")
 
             commText
@@ -1238,9 +1244,17 @@ export class SideBarSmall extends GuiElement {
 
             commText
                 .append("tspan")
-                .text("aktuellen Simulationsschritts von ")
+                .text("aktuellen Simulationsschritts ")
                 .attr("x", 10)
                 .attr("dy", "1.2em")
+                .attr("font-size", "20px")
+                .attr("fill", "white")
+
+            commText
+                .append("tspan")
+                .text("Sender: ")
+                .attr("x", 10)
+                .attr("dy", "2.2em")
                 .attr("font-size", "20px")
                 .attr("fill", "white")
 
@@ -1253,18 +1267,16 @@ export class SideBarSmall extends GuiElement {
 
             commText
                 .append("tspan")
-                .text("zu den Agenten: ")
+                .text("Empfänger: ")
                 .attr("font-size", "20px")
                 .attr("x", 10)
-                .attr("dy", "1.2em")
+                .attr("dy", "2em")
                 .attr("fill", "white")
 
             commText
                 .append("tspan")
                 .attr("id", "tspanReceivers")
                 .text("")
-                .attr("x", 10)
-                .attr("dy", "1.2em")
                 .attr("font-size", "20px")
                 .attr("fill", "red")
 
@@ -2037,21 +2049,24 @@ export class SideBarSmall extends GuiElement {
 
 
                     let lightIndicatorPerformace = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
-                    if (lightIndicatorPerformace >= 80000 || lightIndicatorPerformace <= -80000) {
+                    if (lightIndicatorPerformace <= -80000) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle1").attr("fill", "red")
-                    } else if (lightIndicatorPerformace < 80000 && lightIndicatorPerformace >= 60000 || lightIndicatorPerformace > -80000 && lightIndicatorPerformace <= -60000) {
+                    } else if (lightIndicatorPerformace > -80000 && lightIndicatorPerformace <= -60000) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle2").attr("fill", "orange")
-                    } else if (lightIndicatorPerformace < 60000 && lightIndicatorPerformace >= 35000 || lightIndicatorPerformace > -60000 && lightIndicatorPerformace <= -35000) {
+                    } else if (lightIndicatorPerformace > -60000 && lightIndicatorPerformace <= -35000) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle3").attr("fill", "yellow")
-                    } else if (lightIndicatorPerformace < 35000 && lightIndicatorPerformace >= 10000 || lightIndicatorPerformace > -35000 && lightIndicatorPerformace <= -10000) {
+                    } else if (lightIndicatorPerformace > -35000 && lightIndicatorPerformace <= -10000) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle4").attr("fill", "lightgreen")
-                    } else if (lightIndicatorPerformace < 10000 && lightIndicatorPerformace >= 0 || lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= -0) {
+                    } else if (lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= 0) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle5").attr("fill", "green")
+                    }else if(lightIndicatorPerformace > 0){
+                        d3.selectAll(".performanceLightCircle").attr("fill", "white")
+                        d3.select("#performanceLightCircle1").attr("fill", "red")
                     }
                 } else {
                     d3.selectAll(".line.current").remove()
@@ -2276,20 +2291,13 @@ export class SideBarSmall extends GuiElement {
         let footer = d3.select("#panelFooter")
             .append("g")
             .attr("id", "newFooterG")
-            .attr("transform", "translate(-120, 90)")
+            .attr("transform", "translate(-120, 110)")
 
-        let footertext = footer 
+        let footertext = footer
             .append("text")
             .attr("fill", "white")
             .append("tspan")
-            .text("*Performance von")
-
-        footertext
-            .append("tspan")
-            .attr("x", 0)
-            .attr("y", "1em")
-            .text("0 wird angestrebt")
-
+            .text("*Performance von 0 wird angestrebt")
     }
 
     showScenarioInfomation() {
@@ -2506,9 +2514,9 @@ export class SideBarSmall extends GuiElement {
                     return 450
                 } else if (length >= 10 && length <= 20) {
                     return 600
-                } else if(length >20 && length <= 30){
+                } else if (length > 20 && length <= 30) {
                     return 900
-                }else{
+                } else {
                     return 1500
                 }
             })
