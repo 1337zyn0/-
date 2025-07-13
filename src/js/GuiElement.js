@@ -2116,7 +2116,8 @@ export class SideBarSmall extends GuiElement {
                 }
 
                 let comm = this._scenario.getCurrentCommunicationLinks()
-                let performance = comm[0].performance
+                let performance = this._scenario.getAllPerformance(0)[this._scenario.getCurrentStep()]
+                //let performance = comm[0].performance
                 let sender = comm[0].source
                 let negoID = comm[0].negotiationID
                 try {
@@ -2131,7 +2132,11 @@ export class SideBarSmall extends GuiElement {
                 }
                 d3.select("#tspanSender").text(sender)
                 d3.select("#tspanNegoID").text(negoID)
-                d3.select("#tspanPerformance").text(parseInt(performance))
+                if(performance < 1e8){
+                    d3.select("#tspanPerformance").text(performance.toFixed(2))
+                }else{
+                    d3.select("#tspanPerformance").text(performance.toExponential(3))
+                }
 
                 let fullText = this.getCurrentAttackSceanrioText(true)
 
