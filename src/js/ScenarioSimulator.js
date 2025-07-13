@@ -216,6 +216,10 @@ export class ScenarioSimulator {
     getCurrentCommunicationLinks() {
         if (this.inSimulation) {
             if (this._step == -1) {
+                if (this.allConfig.size === 0) {
+                    this.generateAllAgentStatistics()
+                    this.generateAgentView()
+                }
                 var links = []
                 for (let a = 0; a < this._activeNodes.length; a++) {
                     for (let b = 0; b < this._activeNodes[a].neighbours.length; b++) {
@@ -228,10 +232,6 @@ export class ScenarioSimulator {
                             "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[b].agentID)
                         })
                     }
-                }
-                if (this.allConfig.size === 0) {
-                    this.generateAllAgentStatistics()
-                    this.generateConfiguration()
                 }
                 return links
             } else {
@@ -331,7 +331,7 @@ export class ScenarioSimulator {
         }
     }
 
-    generateConfiguration() {
+    generateAgentView() {
         let configuration = new Map
         for (let z = 0; z < this._scenarioStepAmount; z++) {
             let currentSimulationStep = Object.values(this._simulationData)[z]
@@ -585,10 +585,6 @@ export class ScenarioSimulator {
             ["Eigenverbrauch", this.round(this.scenarioD3SelfConsumptionRate), "%", globalThis.config.ui.icons.bolt],
             ["CO₂ Emission", this.round(this.scenarioD3TotalCo2), "kg/Tag", globalThis.config.ui.icons.cloud],
         ]
-    }
-
-    getAgentStatistics() {
-
     }
 
     getEmsStatistics() {

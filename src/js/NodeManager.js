@@ -550,7 +550,7 @@ export class NodeManager {
         exisitingPositions.set(0, [196, 197])
         exisitingPositions.set(1, [200, globalThis.window.innerHeight - 295])
         exisitingPositions.set(2, [globalThis.window.innerWidth - 198, 199])
-        exisitingPositions.set(3, [globalThis.window.innerWidth - 420 - 30 - 150, globalThis.window.innerHeight - 302])
+        exisitingPositions.set(3, [globalThis.window.innerWidth - 630, globalThis.window.innerHeight - 280])
         //exisitingPositions.set()
 
         for (let j = 4; j < instances.length; j++) {
@@ -648,10 +648,10 @@ export class NodeManager {
                     return false
                 }
             }
-            if (xy[0] > globalThis.window.innerWidth - 420 - 30 && xy[1] > globalThis.window.innerHeight - 720 - 30) {
+            if (xy[0] > globalThis.window.innerWidth - 600 - 10 && xy[1] > globalThis.window.innerHeight - 720 - 600) {
                 return false
             }
-            if (xy[1] > globalThis.window.innerHeight - 300) {
+            if (xy[1] > globalThis.window.innerHeight - 280) {
                 return false
             }
             if (xy[1] > globalThis.window.innerHeight) {

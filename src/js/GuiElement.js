@@ -818,6 +818,7 @@ export class SideBarSmall extends GuiElement {
                     d3.select("#panelFooterText").classed("invisible", true)
                     d3.select("#agentStatistics").classed("invisible", true)
                     d3.select("#newFooterG").classed("invisible", true)
+                    d3.select("#newFooterG").attr("small", true)
                 } else {
                     d3.select("#panelHeaderREF").classed("invisible", false)
                     d3.select("#panelStatsClassic").classed("invisible", false)
@@ -826,6 +827,7 @@ export class SideBarSmall extends GuiElement {
                     d3.select("#panelFooterText").classed("invisible", false)
                     d3.select("#agentStatistics").classed("invisible", false)
                     d3.select("#newFooterG").classed("invisible", false)
+                    d3.select("#newFooterG").attr("small", false)
                 }
 
             })
@@ -1244,7 +1246,7 @@ export class SideBarSmall extends GuiElement {
 
             commText
                 .append("tspan")
-                .text("aktuellen Simulationsschritts ")
+                .text("aktuellen Simulationsschritts:")
                 .attr("x", 10)
                 .attr("dy", "1.2em")
                 .attr("font-size", "20px")
@@ -1744,7 +1746,9 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#infobox-agent").attr("transform", "translate(50, -70)")
                 d3.select("#infobox-agent2").attr("transform", "translate(50, 415)")
                 d3.select("#performanceIndicator").classed("invisible", false)
-                d3.select("#newFooterG").classed("invisible", false)
+                if (!d3.select("#newFooterG").attr("small") == true) {
+                    d3.select("#newFooterG").classed("invisible", false)
+                }
 
                 if (this._scenario.step !== -1) {
                     let currentValue = this._scenario.getCurrentSimulationState()
@@ -2064,7 +2068,7 @@ export class SideBarSmall extends GuiElement {
                     } else if (lightIndicatorPerformace > -10000 && lightIndicatorPerformace <= 0) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle5").attr("fill", "green")
-                    }else if(lightIndicatorPerformace > 0){
+                    } else if (lightIndicatorPerformace > 0) {
                         d3.selectAll(".performanceLightCircle").attr("fill", "white")
                         d3.select("#performanceLightCircle1").attr("fill", "red")
                     }
