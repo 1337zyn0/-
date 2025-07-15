@@ -2183,6 +2183,7 @@ export class SideBarSmall extends GuiElement {
         d3.select("#panelHeader").attr("height", 200)
         d3.select("#parentSvgEntry").attr("width", 650)
         d3.select("#panelHeaderContent").attr("transform", "translate(-10, 0)")
+        d3.select("#panelStatsClassic").attr("transform", "translate(10,270)")
         let panelHeaderContent = d3.select("#panelHeaderContent")
             .append("text")
             .append("tspan")
@@ -2307,10 +2308,11 @@ export class SideBarSmall extends GuiElement {
         d3.select("#infobox-d3").remove()
         d3.selectAll(".panelContent").remove()
         d3.select("#textInfoBox").remove()
+        d3.select("#panelStatsClassic").attr("transform", "translate(-8,280)")
         let text0 = ["Die Basis dieser Optimierung", "bildet die Heuristik COHDA,", "eine verteilte Optimierung", "die durch bestimmte Mechanismen", "schnell zu einer guten Lösung", "kommt. Für weitere Informationen", "über diese Optimierung klicke", "\u00A0", "Folgende Angriffsszenarien können", "gewählt werden:"]
         let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA)."]
         let text2 = ["2. Agent manipuliert Fahrplan", "\u00A0", "Ein Angriffsszenario in dem versendete", "Fahrplänen von einem unterwanderten", "Agenten manipuliert werden."]
-        let text3 = ["3. Zielfunktion manipuliert", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Zielfunktion, also", "die aktuelle angepeilte Gesamtkonfiguration", "der Agentenfahrpläne verändert. Somit", "Optimieren die Agenten ihre", "Fahrpläne auf ein falsches Ziel."]
+        let text3 = ["3. Veränderte Berechnung der Abweichung ", "zur Zielfunktion", "\u00A0", "Ein weiteres Angriffsszenario, in dem", "der Angreifer die Berechnung der", "Differenz zwischen aktuellem Wert zum", "Zielfunktionswert verändert. Hier wird", "das Vorzeichen der Performanceberechnung", "manipuliert, wodurch es zu einer positiven", "Performance kommen kann. Dadurch wird", "der angepeilte Zielfahrplan überstiegen und", "es wird mehr Energie freigegeben als", "durch Verbraucher benötigt werden"]
         let text4 = ["4. Iterative Erhöhung der", "Performancefunktion", "\u00A0", "Innerhalb dieses Szenario´s werden", "die für jeden Simulationsschritt ermittelte", "Performance durch einen Agenten", "manipuliert und iterativ erhöht."]
         let fullText = [...text0, "\u00A0", ...text1, "\u00A0", ...text2, "\u00A0", ...text3, "\u00A0", ...text4]
         let attackScenarioDesc = d3.select("#panelStatsClassic")

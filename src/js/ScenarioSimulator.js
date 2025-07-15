@@ -247,7 +247,7 @@ export class ScenarioSimulator {
                         "sourceRef": device,
                         "target": device.neighbours[a].agentID,
                         "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID),
-                        "performance": currentNegotiation.performance
+                        "performance": currentNegotiation.performance,
                     })
                 }
                 return links
