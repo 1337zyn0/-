@@ -341,7 +341,20 @@ export class ScenarioSimulator {
                 receiverNodes[i] = this._activeNodes.find(agent => agent.agentID === currentSimulationStep.receivers[i])
             }
             let array = Array.from(Object.entries(currentSimulationStep.solution_candidate))
-            configuration.set(senderNode.instanceId, array)
+            if (configuration.has(senderNode.instanceId)) {
+                let currentConfig = configuration.get(senderNode.instanceId)
+                for (let q = 0; q < array.length; q++) {
+                    let solutionCandidateAgentID = array[q][0]
+                    if (currentConfig.find(agent => agent[0] === solutionCandidateAgentID) === undefined) {
+                        currentConfig.push(array[q])
+                    } else {
+                        let indexAgent = currentConfig.findIndex(agent => agent[0] == solutionCandidateAgentID)
+                        currentConfig[indexAgent] = array[q]
+                    }
+                }
+            } else {
+                configuration.set(senderNode.instanceId, array)
+            }
             for (let j = 0; j < 4; j++) {
                 let instanceId = receiverNodes[j].instanceId
                 let currentConfig = configuration.get(instanceId)
@@ -349,10 +362,12 @@ export class ScenarioSimulator {
                     configuration.set(instanceId, array.map(item => [...item]))
                 } else {
                     for (let x = 0; x < array.length; x++) {
-                        if (currentConfig.find(agent => agent[0] === array[x][0]) === undefined) {
+                        let solutionCandidateAgentID = array[x][0]
+                        if (currentConfig.find(agent => agent[0] === solutionCandidateAgentID) === undefined) {
                             currentConfig.push(array[x])
                         } else {
-                            currentConfig[x] = array[x]
+                            let indexAgent = currentConfig.findIndex(agent => agent[0] == solutionCandidateAgentID)
+                            currentConfig[indexAgent] = array[x]
                         }
                     }
                 }
@@ -364,6 +379,7 @@ export class ScenarioSimulator {
             }
             this.allConfig.set(z, saveConfig)
         }
+        console.log(this.allConfig)
     }
 
     generateAllAgentStatistics() {

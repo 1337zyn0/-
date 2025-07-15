@@ -1218,14 +1218,6 @@ export class SideBarSmall extends GuiElement {
             ref
                 .append(function () { return agentStats2.element.node() })
 
-            const agentFeatures = [
-                "Erfassung diverser Umgebungsdaten",
-                "Detaillierte Auswertung",
-                "Verarbeitung von Prognosen",
-                "Optimierung von Anlagenfahrplänen",
-                "Netzdienliche Spitzenlastglättung"
-            ]
-
             const dailyStats = ref
                 .append("g")
                 .attr("id", "panelAgentStatistics")
@@ -1552,7 +1544,7 @@ export class SideBarSmall extends GuiElement {
             this.updateEmsDiagram(this._scenario._energyDeviceList['trafo_d3'].historyInW)
         }
         if (this.inSimulation) {
-            this.updateAgentDiagram()
+            this.updateAgent()
         }
     }
 
@@ -1726,7 +1718,7 @@ export class SideBarSmall extends GuiElement {
             .classed("stroke-yellow-400 stroke-2 fill-none stroke-dashed", true)
     }
 
-    updateAgentDiagram() {
+    updateAgent() {
         let container = d3.select("#agentTargetDiagram")
         switch (this.currentDiagram) {
             case 0: {
@@ -2133,7 +2125,7 @@ export class SideBarSmall extends GuiElement {
                 d3.select("#tspanSender").text(sender)
                 d3.select("#tspanNegoID").text(negoID)
                 if(performance < 1e8){
-                    d3.select("#tspanPerformance").text(performance.toFixed(2))
+                    d3.select("#tspanPerformance").text(performance.toFixed(0))
                 }else{
                     d3.select("#tspanPerformance").text(performance.toExponential(3))
                 }
@@ -2269,7 +2261,7 @@ export class SideBarSmall extends GuiElement {
             .on("click", function () {
                 if (that.currentDiagram > 0) {
                     that.currentDiagram -= 1
-                    that.updateAgentDiagram()
+                    that.updateAgent()
                 }
             })
 
@@ -2288,7 +2280,7 @@ export class SideBarSmall extends GuiElement {
             .on("click", function () {
                 if (that.currentDiagram < 1) {
                     that.currentDiagram += 1
-                    that.updateAgentDiagram()
+                    that.updateAgent()
                 }
             })
 

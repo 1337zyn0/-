@@ -472,20 +472,19 @@
               .classed("nodeLabel", true)
               .attr('rx', '3')
               .on("wheel", function (event, d) {
-                if (d.page === 2) {
 
-                  event.preventDefault()
+                event.preventDefault()
 
-                  let scrollHeight = event.deltaY
-                  offY = offY - scrollHeight
+                let scrollHeight = event.deltaY
+                offY = offY - scrollHeight
 
-                  let contentHeight = Object.keys(d.agentView).length * 40
-                  let maxScroll = 0
-                  let minScroll = (globalThis.window.innerHeight / 4) - contentHeight
+                let contentHeight = Object.keys(d.agentView).length * 43
+                let maxScroll = 0
+                let minScroll = 300 - contentHeight
 
-                  offY = Math.min(maxScroll, Math.max(minScroll, offY))
-                  d3.select("#svgContainer-" + d.instanceId).attr("transform", "translate(0," + offY + ")")
-                }
+                offY = Math.min(maxScroll, Math.max(minScroll, offY))
+                d3.select("#svgContainer-" + d.instanceId).attr("transform", "translate(0," + offY + ")")
+
               })
 
             labelRect.select((d) => {
@@ -736,6 +735,15 @@
                             d3.select("#labelRect-" + d.instanceId).attr("height", 40)
                             d3.select("#agentViewForWardArrow-" + d.instanceId).attr("direction", "forward")
                           }
+                        } else {
+                          d3.select("#labelRect-" + d.instanceId).attr("height", 300)
+                          d3.select("#nodeLabel-" + d.instanceId)
+                            .append("text")
+                            .attr("transform", "translate(20, 50)")
+                            .attr("fill", "white")
+                            .attr("font-size", "1rem")
+                            .text("Noch keine AgentView vorhanden")
+                            .classed("agentViewAll", true)
                         }
 
                       })
@@ -888,7 +896,6 @@
           .attr("x", 10)
           .text("Agenten zum aktuellen Zeitpunkt")
       }
-
       key.each(function (d, i) {
         let curr = d3.select(this)
         i = i + 1
@@ -969,9 +976,9 @@
         let scrollHeight = event.deltaY
         offY = offY - scrollHeight
 
-        let contentHeight = Object.keys(data).length * 40
+        let contentHeight = Object.keys(data).length * 43
         let maxScroll = 0
-        let minScroll = (globalThis.window.innerHeight / 4) - contentHeight
+        let minScroll = 300 - contentHeight
 
         offY = Math.min(maxScroll, Math.max(minScroll, offY))
         svgContainer.attr("transform", "translate(0," + (30 + offY) + ")")
