@@ -1907,8 +1907,34 @@ export class SideBarSmall extends GuiElement {
                         .attr("font-size", "20px")
 
                     let allPerf = this._scenario.getAllPerformance(1)[this._scenario.getAllSteps() - 1]
-                    let minPerf = Math.floor((Math.min(...allPerf) / 100)) * 100
-                    let maxPerf = Math.floor((Math.max(...allPerf) / 100) * 1.05) * 100
+                    let currentCurve = this._scenario.getAllPerformance(0)
+                    let allPerfMin = Math.floor((Math.min(...allPerf) / 100)) * 100
+                    let allPerfMax = Math.floor((Math.max(...allPerf) / 100) * 1.1) * 100
+
+                    let minPerf = Math.floor((Math.min(...currentCurve) / 100)) * 100
+                    let maxPerf = Math.floor((Math.max(...currentCurve) / 100) * 1.1) * 100
+
+                    if (minPerf < this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([min, this.aYScale.domain()[1]])
+                    } else if (minPerf - 10000 > this.aYScale.domain()[0]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([minPerf, this.aYScale.domain()[1]])
+                    }
+
+                    if (maxPerf > this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], maxPerf])
+                    } else if (maxPerf + 10000 < this.aYScale.domain()[1]) {
+                        this.aYScale = d3.scaleLinear()
+                            .range([400, 0])
+                            .domain([this.aYScale.domain()[0], maxPerf])
+                    }
+
+
 
                     if (minPerf < -1e10) {
                         minPerf = -1e10
@@ -1917,8 +1943,12 @@ export class SideBarSmall extends GuiElement {
                     if (maxPerf > 1e10) {
                         maxPerf = 1e10
                     }
-                    if (maxPerf < 0) {
-                        maxPerf = Math.max(maxPerf, 0)
+                    if (allPerfMin <= 0 && allPerfMax <= 0 || allPerfMin >= 0 && allperfmax >= 0) {
+                        if (this.attackScenario == 0 && maxPerf < 0 || this.attackScenario == 1 && maxPerf < 0) {
+                            maxPerf = Math.max(maxPerf, 1)
+                        }else if (minPerf > 0){
+                            minPerf = Math.min(minPerf, -1)
+                        }
                     }
 
                     this.aXScale = d3.scaleLinear()
@@ -1942,18 +1972,20 @@ export class SideBarSmall extends GuiElement {
                             .tickValues(d3.range(0, this._scenario.getAllSteps(), Math.ceil(this._scenario.getAllSteps() / 10))))
 
                     d3.select("#agentTargetX2").selectAll(".tick text").attr("font-size", "20px")
-
-
-                    d3.select("#agentTargetDiagram2")
-                        .append("line")
-                        .attr("x1", 0)
-                        .attr("x2", 500)
-                        .attr("y1", this.aYScale(0))
-                        .attr("y2", this.aYScale(0))
-                        .attr("transform", "translate(50, 420)")
-                        .attr("stroke", "white")
-                        .attr("stroke-width", 1)
-
+                    if (d3.select("#lineForDiagramm").empty()) {
+                        if (this.aYScale.domain()[0] >= 0 || this.aYScale.domain()[1] >= 0) {
+                            d3.select("#agentTargetDiagram2")
+                                .append("line")
+                                .attr("id", "lineForDiagramm")
+                                .attr("x1", 0)
+                                .attr("x2", 500)
+                                .attr("y1", this.aYScale(0))
+                                .attr("y2", this.aYScale(0))
+                                .attr("transform", "translate(50, 420)")
+                                .attr("stroke", "white")
+                                .attr("stroke-width", 1)
+                        }
+                    }
 
                     if (maxPerf == 10000000000) {
                         d3.select("#agentTargetDiagramY2").selectAll(".tick text")
@@ -1993,6 +2025,7 @@ export class SideBarSmall extends GuiElement {
                                     .attr("transform", "translate(50, 420)")
                                     .attr("fill", "none")
                                     .attr("stroke", "orange")
+                                    .attr("stroke-width", 1.75)
 
                                 g.selectAll("circle")
                                     .data(performanceCoordinate)
@@ -2124,9 +2157,9 @@ export class SideBarSmall extends GuiElement {
                 }
                 d3.select("#tspanSender").text(sender)
                 d3.select("#tspanNegoID").text(negoID)
-                if(performance < 1e8){
+                if (performance < 1e8) {
                     d3.select("#tspanPerformance").text(performance.toFixed(0))
-                }else{
+                } else {
                     d3.select("#tspanPerformance").text(performance.toExponential(3))
                 }
 
@@ -2308,6 +2341,7 @@ export class SideBarSmall extends GuiElement {
         d3.select("#infobox-d3").remove()
         d3.selectAll(".panelContent").remove()
         d3.select("#textInfoBox").remove()
+        d3.select(".headerRemove").remove()
         d3.select("#panelStatsClassic").attr("transform", "translate(-8,280)")
         let text0 = ["Die Basis dieser Optimierung", "bildet die Heuristik COHDA,", "eine verteilte Optimierung", "die durch bestimmte Mechanismen", "schnell zu einer guten Lösung", "kommt. Für weitere Informationen", "über diese Optimierung klicke", "\u00A0", "Folgende Angriffsszenarien können", "gewählt werden:"]
         let text1 = ["1. Kein Angriffsszenario", "\u00A0", "Kein Angriff, hier arbeitet die verteilte", "Optimierung ohne eine manipulation", "eines Angreifers nach dem vorgegebenen", "Muster (Combinatorial Optimization", "Heuristic for Distributed Agents COHDA)."]

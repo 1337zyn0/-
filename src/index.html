@@ -61,6 +61,7 @@
     const nodeManager = new NodeManager()
     var inSimulation = false
     let currentStep = -1
+    let corruptedSteps = []
 
     const config = {
       energy_device_power: [],
@@ -676,8 +677,16 @@
                     }
                   } catch (error) {
                   }
+                } else if (scenario.getAttackScenario() == 3) {
+                  d3.selectAll(".nodeLabel").style("fill", null)
+                  let corruptedSteps = scenario.getCorruptedSteps()
+                  let agent = nodeManager.getActiveInstances()
+                  let id = agent.find(agent => agent.agentID === "agent15")
+                  if (scenario.getCurrentStep() >= Math.min(...corruptedSteps)) {
+                    d3.select("#labelRect-" + id.instanceId).style("fill", "red")
+                  }
                 }
-                
+
                 if (scenario.getAttackScenario() == 1 && scenario.getCurrentStep() !== -1) {
 
                   let nodes = nodeManager.getActiveInstances()

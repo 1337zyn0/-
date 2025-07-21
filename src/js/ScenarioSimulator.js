@@ -48,6 +48,7 @@ export class ScenarioSimulator {
         this.simulationSteps = 0
         this.attackScenario = -1
         this._activeNodes
+        this.corruptedSteps = []
         this.allConfig = new Map
     }
 
@@ -213,6 +214,10 @@ export class ScenarioSimulator {
         return this.attackScenario
     }
 
+    getCorruptedSteps(){
+        return this.corruptedSteps
+    }
+
     getCurrentCommunicationLinks() {
         if (this.inSimulation) {
             if (this._step == -1) {
@@ -248,6 +253,7 @@ export class ScenarioSimulator {
                         "target": device.neighbours[a].agentID,
                         "targetRef": this._activeNodes.find(agent => agent.agentID === device.neighbours[a].agentID),
                         "performance": currentNegotiation.performance,
+                        "manipulation": currentNegotiation.manipulation
                     })
                 }
                 return links
@@ -379,7 +385,6 @@ export class ScenarioSimulator {
             }
             this.allConfig.set(z, saveConfig)
         }
-        console.log(this.allConfig)
     }
 
     generateAllAgentStatistics() {
@@ -411,6 +416,12 @@ export class ScenarioSimulator {
                 let asdf = this.simulationPerformance.at(k - 1)
                 let newPerf = [...asdf, simulation]
                 this.simulationPerformance.push(newPerf)
+            }
+        }
+
+        for(let z = 0; z < Object.entries(this._simulationData).length; z++){
+            if(Object.values(this._simulationData)[z].manipulation == true){
+                this.corruptedSteps.push(z)
             }
         }
     }

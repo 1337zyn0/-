@@ -523,24 +523,6 @@ export class NodeManager {
         this.positionNodes()
     }
 
-    createCommunicationLinks() {
-        let energyDevices = this.getPureActiveEnergyDevices()
-        var links = []
-        for (let a = 0; a < energyDevices.length; a++) {
-            for (let b = 0; b < energyDevices[a].neighbours.length; b++) {
-                let device = energyDevices[a]
-                links.push({
-                    "id": `${device.agentID}-${device.neighbours[b]}`,
-                    "source": device.agentID,
-                    "sourceRef": device,
-                    "target": device.neighbours[b],
-                    "targetRef": energyDevices.find(agent => agent.agentID === device.neighbours[b])
-                })
-            }
-        }
-        return links
-    }
-
     positionNodes() {
         let exisitingPositions = new Map
         let alreadyPlacedNodes = new Map
@@ -626,7 +608,7 @@ export class NodeManager {
                 return [(a[0][0] + a[1][0]) * 0.5, (a[0][1] + a[1][1]) * 0.5]
             }
         }
-        for (let x = 0; x < Array.from(allDistances.keys()).length; x++) {
+        for (let x = 0; x < 100; x++) {
             let random = [margin + Math.random() * (globalThis.window.innerWidth - 2 * margin), margin + Math.random() * (globalThis.window.innerHeight - 2 * margin)]
             if (this.checkPosition(exisitingPositions, random)) {
                 return random
